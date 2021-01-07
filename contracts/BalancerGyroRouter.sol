@@ -4,8 +4,9 @@ pragma solidity ^0.7.0;
 import "./GyroRouter.sol";
 import "./balancer/BPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract BalancerGyroRouter is GyroRouter {
+contract BalancerGyroRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
 
     function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
@@ -64,7 +65,7 @@ contract BalancerGyroRouter is GyroRouter {
         address token,
         uint256 amount
     ) internal view returns (uint256[] memory) {
-        address[] memory poolTokens = pool.getCurrentTokens();
+        address[] memory poolTokens = pool.getFinalTokens();
         uint256[] memory amounts = new uint256[](poolTokens.length);
         bool found = false;
         for (uint256 i = 0; i < poolTokens.length; i++) {
@@ -140,5 +141,24 @@ contract BalancerGyroRouter is GyroRouter {
         require(candidates.length > 0, "token not supported");
         // TODO: choose better
         return candidates[_amount % candidates.length];
+    }
+
+    function addPool(address _poolAddress) public onlyOwner {
+        BPool pool = BPool(_poolAddress);
+        require(pool.isFinalized(), "can only add finalized pools");
+        address[] memory poolTokens = pool.getFinalTokens();
+        for (uint256 i = 0; i < poolTokens.length; i++) {
+            address[] storage currentPools = pools[poolTokens[i]];
+            bool exists = false;
+            for (uint256 j = 0; j < currentPools.length; j++) {
+                if (currentPools[j] == _poolAddress) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                currentPools.push(_poolAddress);
+            }
+        }
     }
 }
