@@ -47,7 +47,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             bool success =
                 IERC20(_tokensIn[i]).transferFrom(
                     msg.sender,
-                    address(gyroRouter),
+                    address(this),
                     _amountsIn[i]
                 );
             require(success, "failed to transfer tokens, check allowance");
