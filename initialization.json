@@ -1,25 +1,74 @@
 {
-  "balancer_pools": {
-    "usdt_xaut": {"swap_fee": 0.1},
-    "tusd_tgbp": {"swap_fee": 0.1},
-    "pax_paxg": {"swap_fee": 0.1},
-    "usdc_eurs": {"swap_fee": 0.1},
-    "weth_dai": {"swap_fee": 0.1},
-    "susd_eth": {"swap_fee": 0.1},
-    "esd_eth": {"swap_fee": 0.1},
-  },
-  "tokens": {
-    "usdt": {"decimals": 6, "balance": 1000},
-    "xaut": {"decimals": 6, "balance": 1000},
-    "tusd": {"decimals": 18, "balance": 1000},
-    "tgbp": {"decimals": 18, "balance": 1000},
-    "pax": {"decimals": 18, "balance": 1000},
-    "paxg": {"decimals": 18, "balance": 1000},
-    "usdc":  {"decimals": 6, "balance": 1000},
-    "eurs":  {"decimals": 2, "balance": 1000},
-    "weth":  {"decimals": 18, "balance": 1000},
-    "dai":  {"decimals": 18, "balance": 1000},
-    "susd":  {"decimals": 18, "balance": 1000},
-    "esd":  {"decimals": 18, "balance": 1000},
-  }
+  "balancer_pools": [
+    {
+      "name": "usdt_xaut",
+      "assets": [
+        { "symbol": "USDT", "amount": 5, "weight": 5 },
+        { "symbol": "XAUT", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "tusd_tgbp",
+      "assets": [
+        { "symbol": "TUSD", "amount": 5, "weight": 5 },
+        { "symbol": "TGBP", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "pax_paxg",
+      "assets": [
+        { "symbol": "PAX", "amount": 5, "weight": 5 },
+        { "symbol": "PAXG", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "usdc_eurs",
+      "assets": [
+        { "symbol": "USDC", "amount": 5, "weight": 5 },
+        { "symbol": "EURS", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "weth_dai",
+      "assets": [
+        { "symbol": "WETH", "amount": 5, "weight": 5 },
+        { "symbol": "DAI", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "susd_weth",
+      "assets": [
+        { "symbol": "SUSD", "amount": 5, "weight": 5 },
+        { "symbol": "WETH", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
+      "name": "esd_weth",
+      "assets": [
+        { "symbol": "ESD", "amount": 5, "weight": 5 },
+        { "symbol": "WETH", "amount": 5, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    }
+  ],
+  "tokens": [
+    { "name": "usdt", "symbol": "USDT", "decimals": 6, "balance": 1000, "price": 1000000 },
+    { "name": "xaut", "symbol": "XAUT", "decimals": 6, "balance": 1000, "price": 1800000000 },
+    { "name": "tusd", "symbol": "TUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
+    { "name": "tgbp", "symbol": "TGBP", "decimals": 18, "balance": 1000, "price": 1440000 },
+    { "name": "pax", "symbol": "PAX", "decimals": 18, "balance": 1000, "price": 1000000 },
+    { "name": "paxg", "symbol": "PAXG", "decimals": 18, "balance": 1000, "price": 1850000000 },
+    { "name": "usdc", "symbol": "USDC", "decimals": 6, "balance": 1000, "price": 1000000 },
+    { "name": "eurs", "symbol": "EURS", "decimals": 2, "balance": 1000, "price": 1250000 },
+    { "name": "weth", "symbol": "WETH", "decimals": 18, "balance": 1000, "price": 1250000000 },
+    { "name": "dai", "symbol": "DAI", "decimals": 18, "balance": 1000, "price": 1000000 },
+    { "name": "susd", "symbol": "SUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
+    { "name": "esd", "symbol": "ESD", "decimals": 18, "balance": 1000, "price": 1000000 }
+  ]
 }

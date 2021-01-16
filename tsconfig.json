@@ -11,11 +11,10 @@
     "strict": true,
     "target": "ES2018"
   },
-  "include": ["./scripts", "./test"],
+  "include": ["./scripts", "./test", "./deploy"],
   "files": [
     "./buidler.config.ts",
-    "./node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
-    "./node_modules/@nomiclabs/buidler-waffle/src/type-extensions.d.ts",
-    "./node_modules/buidler-typechain/src/type-extensions.d.ts"
+    "./node_modules/hardhat-deploy/src/type-extensions.ts",
+    "./node_modules/@nomiclabs/hardhat-ethers/src/type-extensions.ts"
   ]
 }
