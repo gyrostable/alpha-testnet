@@ -2,12 +2,12 @@
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./GyroPriceOracle.sol";
 import "./GyroRouter.sol";
+import "./Ownable.sol";
 
 interface GyroFund is IERC20 {
     function mint(
@@ -27,7 +27,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     GyroPriceOracle gyroPriceOracle;
     GyroRouter gyroRouter;
 
-    constructor() Ownable() ERC20("Gyro Stable Coin", "GYRO") {}
+    constructor(address _priceOracleAddress, address _routerAddress)
+        ERC20("Gyro Stable Coin", "GYRO")
+    {
+        gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
+        gyroRouter = GyroRouter(_routerAddress);
+    }
 
     /**
      * [Check the inputted vault tokens are in the right proportions, if not, adjust, then mint.]

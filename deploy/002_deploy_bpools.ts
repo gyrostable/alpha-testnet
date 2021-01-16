@@ -62,6 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         .mul(TEN.pow(new BN(24)))
         .div(prices[asset.symbol])
         .toString();
+      console.log(`${asset.symbol} balance: ${balance.toString()}`);
       const tokenAddress = tokenAddresses[asset.symbol];
       const denorm = new BN(asset.weight).mul(TEN.pow(new BN(18)));
       await execute(`${asset.symbol}ERC20`, deployOptions, "approve", address, balance);

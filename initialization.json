@@ -3,56 +3,56 @@
     {
       "name": "usdt_xaut",
       "assets": [
-        { "symbol": "USDT", "amount": 5, "weight": 5 },
-        { "symbol": "XAUT", "amount": 5, "weight": 5 }
+        { "symbol": "USDT", "amount": 50000, "weight": 5 },
+        { "symbol": "XAUT", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "tusd_tgbp",
       "assets": [
-        { "symbol": "TUSD", "amount": 5, "weight": 5 },
-        { "symbol": "TGBP", "amount": 5, "weight": 5 }
+        { "symbol": "TUSD", "amount": 50000, "weight": 5 },
+        { "symbol": "TGBP", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "pax_paxg",
       "assets": [
-        { "symbol": "PAX", "amount": 5, "weight": 5 },
-        { "symbol": "PAXG", "amount": 5, "weight": 5 }
+        { "symbol": "PAX", "amount": 50000, "weight": 5 },
+        { "symbol": "PAXG", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "usdc_eurs",
       "assets": [
-        { "symbol": "USDC", "amount": 5, "weight": 5 },
-        { "symbol": "EURS", "amount": 5, "weight": 5 }
+        { "symbol": "USDC", "amount": 50000, "weight": 5 },
+        { "symbol": "EURS", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "weth_dai",
       "assets": [
-        { "symbol": "WETH", "amount": 5, "weight": 5 },
-        { "symbol": "DAI", "amount": 5, "weight": 5 }
+        { "symbol": "WETH", "amount": 50000, "weight": 5 },
+        { "symbol": "DAI", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "susd_weth",
       "assets": [
-        { "symbol": "SUSD", "amount": 5, "weight": 5 },
-        { "symbol": "WETH", "amount": 5, "weight": 5 }
+        { "symbol": "SUSD", "amount": 50000, "weight": 5 },
+        { "symbol": "WETH", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
     {
       "name": "esd_weth",
       "assets": [
-        { "symbol": "ESD", "amount": 5, "weight": 5 },
-        { "symbol": "WETH", "amount": 5, "weight": 5 }
+        { "symbol": "ESD", "amount": 50000, "weight": 5 },
+        { "symbol": "WETH", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     }

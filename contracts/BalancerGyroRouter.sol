@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./GyroRouter.sol";
 import "./balancer/BPool.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 
-contract BalancerGyroRouter is GyroRouter, Ownable {
+contract BalancerExternalTokenRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
 
     function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {
@@ -137,4 +138,13 @@ contract BalancerGyroRouter is GyroRouter, Ownable {
             }
         }
     }
+}
+
+contract BalancerTokenRouter is GyroRouter, Ownable {
+    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {}
+
+    function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
+        external
+        override
+    {}
 }
