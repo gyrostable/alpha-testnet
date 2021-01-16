@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
@@ -45,11 +45,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             bool success =
-                IERC20(_tokensIn[i]).transferFrom(
-                    msg.sender,
-                    address(this),
-                    _amountsIn[i]
-                );
+                IERC20(_tokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
             require(success, "failed to transfer tokens, check allowance");
         }
 
@@ -58,8 +54,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         // after this call, the balance of BPT of this contract will have increased
         gyroRouter.deposit(_tokensIn, _amountsIn);
 
-        uint256 amountToMint =
-            gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
+        uint256 amountToMint = gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
 
         require(amountToMint >= _minGyroMinted, "too much slippage");
 
@@ -86,11 +81,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         for (uint256 i = 0; i < _tokensOut.length; i++) {
             require(amountsOut[i] >= _minAmountsOut[i], "too much slippage");
             bool success =
-                IERC20(_tokensOut[i]).transferFrom(
-                    address(gyroRouter),
-                    msg.sender,
-                    amountsOut[i]
-                );
+                IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
             require(success, "failed to transfer tokens");
         }
 
