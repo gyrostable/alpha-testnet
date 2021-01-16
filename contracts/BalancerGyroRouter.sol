@@ -9,23 +9,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract BalancerGyroRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
 
-    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
-        external
-        override
-    {
+    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             address token = _tokensIn[i];
             uint256 amount = _amountsIn[i];
-            bool success =
-                IERC20(token).transferFrom(msg.sender, address(this), amount);
-            require(
-                success,
-                "failed to transfer tokens from GyroFund to GryoRouter"
-            );
+            bool success = IERC20(token).transferFrom(msg.sender, address(this), amount);
+            require(success, "failed to transfer tokens from GyroFund to GryoRouter");
 
             BPool pool = BPool(choosePoolToDeposit(token, amount));
-            uint256 poolAmountOut =
-                calcPoolOutGivenSingleIn(pool, token, amount);
+            uint256 poolAmountOut = calcPoolOutGivenSingleIn(pool, token, amount);
             uint256[] memory amountsIn = createAmounts(pool, token, amount);
             pool.joinPool(poolAmountOut, amountsIn);
 
@@ -34,23 +26,15 @@ contract BalancerGyroRouter is GyroRouter, Ownable {
         }
     }
 
-    function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
-        external
-        override
-    {
+    function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut) external override {
         for (uint256 i = 0; i < _tokensOut.length; i++) {
             address token = _tokensOut[i];
             uint256 amount = _amountsOut[i];
             BPool pool = BPool(choosePoolToWithdraw(token, amount));
-            uint256 poolAmountIn =
-                calcPoolInGivenSingleOut(pool, token, amount);
+            uint256 poolAmountIn = calcPoolInGivenSingleOut(pool, token, amount);
 
-            bool success =
-                pool.transferFrom(msg.sender, address(this), poolAmountIn);
-            require(
-                success,
-                "failed to transfer BPT from GyroFund to GryoRouter"
-            );
+            bool success = pool.transferFrom(msg.sender, address(this), poolAmountIn);
+            require(success, "failed to transfer BPT from GyroFund to GryoRouter");
 
             uint256[] memory amountsOut = createAmounts(pool, token, amount);
             pool.exitPool(poolAmountIn, amountsOut);
@@ -121,22 +105,14 @@ contract BalancerGyroRouter is GyroRouter, Ownable {
             );
     }
 
-    function choosePoolToDeposit(address _token, uint256 _amount)
-        private
-        view
-        returns (address)
-    {
+    function choosePoolToDeposit(address _token, uint256 _amount) private view returns (address) {
         address[] storage candidates = pools[_token];
         require(candidates.length > 0, "token not supported");
         // TODO: choose better
         return candidates[_amount % candidates.length];
     }
 
-    function choosePoolToWithdraw(address _token, uint256 _amount)
-        private
-        view
-        returns (address)
-    {
+    function choosePoolToWithdraw(address _token, uint256 _amount) private view returns (address) {
         address[] storage candidates = pools[_token];
         require(candidates.length > 0, "token not supported");
         // TODO: choose better
