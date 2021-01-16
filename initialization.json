@@ -1,0 +1,25 @@
+{
+  "balancer_pools": {
+    "usdt_xaut": {"swap_fee": 0.1},
+    "tusd_tgbp": {"swap_fee": 0.1},
+    "pax_paxg": {"swap_fee": 0.1},
+    "usdc_eurs": {"swap_fee": 0.1},
+    "weth_dai": {"swap_fee": 0.1},
+    "susd_eth": {"swap_fee": 0.1},
+    "esd_eth": {"swap_fee": 0.1},
+  },
+  "tokens": {
+    "usdt": {"decimals": 6, "balance": 1000},
+    "xaut": {"decimals": 6, "balance": 1000},
+    "tusd": {"decimals": 18, "balance": 1000},
+    "tgbp": {"decimals": 18, "balance": 1000},
+    "pax": {"decimals": 18, "balance": 1000},
+    "paxg": {"decimals": 18, "balance": 1000},
+    "usdc":  {"decimals": 6, "balance": 1000},
+    "eurs":  {"decimals": 2, "balance": 1000},
+    "weth":  {"decimals": 18, "balance": 1000},
+    "dai":  {"decimals": 18, "balance": 1000},
+    "susd":  {"decimals": 18, "balance": 1000},
+    "esd":  {"decimals": 18, "balance": 1000},
+  }
+}
