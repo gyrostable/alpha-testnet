@@ -2,6 +2,7 @@
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
+import "./balancer/bPool.sol";
 import "./abdk/ABDKMath64x64.sol";
 
 interface GyroPriceOracle {
@@ -15,9 +16,14 @@ interface GyroPriceOracle {
         address[] memory _tokensOut
     ) external view returns (uint256[] memory _amountsOut);
 
+    function fracPow(
+        int128 _x,
+        int128 _y
+    ) external view returns (int128 _xExpy);
+
     function getBptPrice(
-        address _bptAddress,
-        uint256[] _underlyingPrices
+        address _bPoolAddress,
+        mapping(address => uint256) _underlyingPrices
     ) external view returns (uint256 _bptPrice);
 }
 
@@ -44,15 +50,24 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
         return amounts;
     }
 
+    // calculates _x^_y where _x,_y are decimals
+    function fracPow(
+        int128 _x,
+        int128 _y
+    ) external view returns (int128 _xExpy) {
+        _xExpy = exp_2( mul(_y, log_2(_x)) );
+        return _xExpy;
+    }
+
     function getBptPrice(
-        address _bptAddress,
-        uint256[] _underlyingPrices
+        address _bPoolAddress,
+        mapping(address => uint256) _underlyingPrices
     ) external view returns (uint256 _bptPrice) {
-        /* TODO:
+        /* calculations:
             bptSupply = # of BPT tokens
-            bpWeights = array of pool weights (require _underlyingPrices comes in same order)
+            bPoolWeights = array of pool weights (require _underlyingPrices comes in same order)
             k = constant = product of reserves^weight
-            bptPrice = (k * product of (p_i / w_i)^w_i ) / btpSupply
+            bptPrice = (k * product of (p_i / w_i)^w_i ) / bptSupply
 
             functions from ABDKMath64x64 library
             -- exp_2 = binary exponent
@@ -62,12 +77,23 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
             x^y = 2^(y log_2 x)
             exp_2( mul(y, log_2(x)) )
         */
-        uint256 bptSupply;
-        uint256[] bpWeights;
-        uint256 _k = 1;
-        for (uint256 i=0; i < bpWeights.length; i++) {
-            _k = mustMulExp(_k, )
+        BPool _bPool = BPool(_bPoolAddress);
+        uint256 _bptSupply = bPool.totalSupply();
+        address[] memory _tokens = balancerPool.getFinalTokens();
+        int128 _weight;
+        int128 _price;
+        int128 _tokenBalance;
+        int128 _k = fromUInt(1); // check that these are the right to get value 1
+        int128 _weightedProd = fromUInt(1);
+        for (uint256 i=0; i< _tokens.length; i++) {
+            _weight = fromUInt(_bPool.getNormalizedWeight(_tokens[i]));
+            _price = fromUint(_underlyingPrices[_tokens[i]]);
+            _tokenBalance = fromUInt(_bPool.getBalance(_tokens[i]));
+            _k = mul(_k, fracPow(_tokenBalance, _weight));
+            _weightedProd = mul(_weightedProd, fracPow( div(_price, _weight), _weight) );
         }
+        int128 _priceBPT = div( mul(_k, _weightedProd), _bptSupply );
+        return _priceBPT;
 
     }
 }
