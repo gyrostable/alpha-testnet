@@ -1,4 +1,5 @@
 {
+  "name": "@gyrostable/core",
   "license": "UNLICENSED",
   "description": "The Gyroscope Dollar core contracts",
   "devDependencies": {
@@ -23,6 +24,11 @@
     "typechain": "^4.0.1",
     "typescript": "^4.1.3"
   },
+  "files": [
+    "artifacts",
+    "contracts",
+    "typechain"
+  ],
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test"
