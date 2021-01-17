@@ -13,7 +13,7 @@
   },
   "include": ["./scripts", "./test", "./deploy"],
   "files": [
-    "./buidler.config.ts",
+    "./hardhat.config.ts",
     "./node_modules/hardhat-deploy/src/type-extensions.ts",
     "./node_modules/@nomiclabs/hardhat-ethers/src/type-extensions.ts"
   ]

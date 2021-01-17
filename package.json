@@ -31,7 +31,8 @@
   ],
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "export": "npx hardhat export --export artifacts/deployment.json --network localhost"
   },
   "prettier": {
     "printWidth": 100

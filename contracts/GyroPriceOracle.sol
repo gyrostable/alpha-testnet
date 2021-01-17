@@ -4,22 +4,18 @@ pragma solidity ^0.7.0;
 import "hardhat/console.sol";
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
+import "./ExtendedMath.sol";
 
 interface GyroPriceOracle {
-    function getAmountToMint(
-        address[] memory _tokensIn,
-        uint256[] memory _amountsIn
-    ) external view returns (uint256);
+    function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        view
+        returns (uint256);
 
-    function getAmountsToPayback(
-        uint256 _gyroAmount,
-        address[] memory _tokensOut
-    ) external view returns (uint256[] memory _amountsOut);
-
-    function fracPow(
-        int128 _x,
-        int128 _y
-    ) external view returns (int128 _xExpy);
+    function getAmountsToPayback(uint256 _gyroAmount, address[] memory _tokensOut)
+        external
+        view
+        returns (uint256[] memory _amountsOut);
 
     // function getBptPrice(
     //     address _bPoolAddress,
@@ -28,10 +24,16 @@ interface GyroPriceOracle {
 }
 
 contract DummyGyroPriceOracle is GyroPriceOracle, BPool {
-    function getAmountToMint(
-        address[] memory _tokensIn,
-        uint256[] memory _amountsIn
-    ) external pure override returns (uint256) {
+    using ExtendedMath for int128;
+    using ABDKMath64x64 for uint256;
+    using ABDKMath64x64 for int128;
+
+    function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        pure
+        override
+        returns (uint256)
+    {
         uint256 result = 0;
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             result += _amountsIn[i];
@@ -39,25 +41,17 @@ contract DummyGyroPriceOracle is GyroPriceOracle, BPool {
         return result;
     }
 
-    function getAmountsToPayback(
-        uint256 _gyroAmount,
-        address[] memory _tokensOut
-    ) external pure override returns (uint256[] memory _amountsOut) {
+    function getAmountsToPayback(uint256 _gyroAmount, address[] memory _tokensOut)
+        external
+        pure
+        override
+        returns (uint256[] memory _amountsOut)
+    {
         uint256[] memory amounts = new uint256[](_tokensOut.length);
         for (uint256 i = 0; i < _tokensOut.length; i++) {
             amounts[i] = _gyroAmount / _tokensOut.length;
         }
         return amounts;
-    }
-
-    // calculates _x^_y where _x,_y are decimals
-    function fracPow(
-        int128 _x,
-        int128 _y
-    ) external view virtual override returns (int128 _xExpy) {
-        
-        _xExpy = ABDKMath64x64.exp_2( ABDKMath64x64.mul(_y, ABDKMath64x64.log_2(_x)) );
-        return _xExpy;
     }
 
     function getBptPrice(
@@ -81,21 +75,19 @@ contract DummyGyroPriceOracle is GyroPriceOracle, BPool {
         */
         BPool _bPool = BPool(_bPoolAddress);
         uint256 _bptSupply = _bPool.totalSupply();
-        address[] memory _tokens = _bPool.getFinalTokens(); 
-        int128 _weight;
-        int128 _price;
-        int128 _tokenBalance;
-        int128 _k = ABDKMath64x64.fromUInt(1); // check that these are the right to get value 1
-        int128 _weightedProd = ABDKMath64x64.fromUInt(1);
-        for (uint256 i=0; i< _tokens.length; i++) {
-            _weight = ABDKMath64x64.fromUInt(_bPool.getNormalizedWeight(_tokens[i]));
-            _price = ABDKMath64x64.fromUint(_underlyingPrices[i]);
-            _tokenBalance = ABDKMath64x64.fromUInt(_bPool.getBalance(_tokens[i]));
-            _k = ABDKMath64x64.mul(_k, ABDKMath64x64.fracPow(_tokenBalance, _weight));
-            _weightedProd = ABDKMath64x64.mul(_weightedProd, ABDKMath64x64.fracPow( ABDKMath64x64.div(_price, _weight), _weight) );
-        }
-        _bptPrice = ABDKMath64x64.toUInt( ABDKMath64x64.div( ABDKMath64x64.mul(_k, _weightedProd), _bptSupply ));
-        return _bptPrice;
+        address[] memory _tokens = _bPool.getFinalTokens();
 
+        int128 _k = uint256(1).fromUInt(); // check that these are the right to get value 1
+        int128 _weightedProd = uint256(1).fromUInt();
+
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            int128 _weight = _bPool.getNormalizedWeight(_tokens[i]).fromUInt();
+            int128 _price = _underlyingPrices[i].fromUInt();
+            int128 _tokenBalance = _bPool.getBalance(_tokens[i]).fromUInt();
+            _k = _k.mul(_tokenBalance.powf(_weight));
+            _weightedProd = _weightedProd.mul(_price.div(_weight).powf(_weight));
+        }
+
+        return _k.mul(_weightedProd).div(_bptSupply.fromUInt()).toUInt();
     }
 }
