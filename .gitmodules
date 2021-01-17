@@ -1,0 +1,3 @@
+[submodule "contracts/abdk"]
+	path = contracts/abdk
+	url = https://github.com/abdk-consulting/abdk-libraries-solidity.git
