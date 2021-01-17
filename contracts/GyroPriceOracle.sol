@@ -2,7 +2,7 @@
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
-import "./balancer/bPool.sol";
+import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
 
 interface GyroPriceOracle {
