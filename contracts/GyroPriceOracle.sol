@@ -62,7 +62,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
     function getBptPrice(
         address _bPoolAddress,
         mapping(address => uint256) _underlyingPrices
-    ) external view returns (uint256 _bptPrice) {
+    ) external view returns (uint64 _bptPrice) {
         /* calculations:
             bptSupply = # of BPT tokens
             bPoolWeights = array of pool weights (require _underlyingPrices comes in same order)
@@ -92,8 +92,8 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
             _k = mul(_k, fracPow(_tokenBalance, _weight));
             _weightedProd = mul(_weightedProd, fracPow( div(_price, _weight), _weight) );
         }
-        int128 _priceBPT = div( mul(_k, _weightedProd), _bptSupply );
-        return _priceBPT;
+        _bptPrice = toUInt( div( mul(_k, _weightedProd), _bptSupply ));
+        return _bptPrice;
 
     }
 }
