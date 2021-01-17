@@ -4,6 +4,7 @@ pragma solidity ^0.7.0;
 import "hardhat/console.sol";
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
+
 import "./ExtendedMath.sol";
 
 interface GyroPriceOracle {
@@ -23,7 +24,7 @@ interface GyroPriceOracle {
     // ) external view returns  (uint256 _bptPrice);
 }
 
-contract DummyGyroPriceOracle is GyroPriceOracle, BPool {
+contract DummyGyroPriceOracle is GyroPriceOracle {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
