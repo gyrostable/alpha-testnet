@@ -30,7 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       { from: deployer.address },
       "mint",
       deployer.address,
-      BigNumber.from(10).pow(27)
+      BigNumber.from(10).pow(token.decimals + 6) // 1M of each token
     );
   }
 };

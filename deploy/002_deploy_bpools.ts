@@ -26,10 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  const prices: Record<string, BigNumber> = {};
-  for (const token of initConfig.tokens) {
-    prices[token.symbol] = BigNumber.from(token.price);
-  }
+  const tokens = Object.fromEntries(initConfig.tokens.map((t) => [t.symbol, t]));
 
   const pools = initConfig.balancer_pools;
   const bFactoryInterface = new ethers.utils.Interface(BFactoryArtifact.abi);
@@ -58,7 +55,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
 
     for (const asset of pool.assets) {
-      const balance = TEN.pow(24).mul(asset.amount).div(prices[asset.symbol]);
+      const token = tokens[asset.symbol];
+      // 10 ^ (decimals + 6): 6 is the precision of price and is canceled by / token.price
+      const balance = TEN.pow(token.decimals + 6)
+        .mul(asset.amount)
+        .div(token.price);
       console.log(`${asset.symbol} balance: ${balance.toString()}`);
       const tokenAddress = tokenAddresses[asset.symbol];
       const denorm = TEN.pow(18).mul(asset.weight);
