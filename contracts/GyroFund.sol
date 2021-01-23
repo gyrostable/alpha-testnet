@@ -21,6 +21,8 @@ interface GyroFund is IERC20 {
         address[] memory _tokensOut,
         uint256[] memory _minValuesOut
     ) external returns (uint256[] memory);
+
+    function 
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -32,10 +34,14 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
+
     }
 
+        address immutable daiethpool = 0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a;
+        address immutable usdcethpool = 0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf;
+
     /**
-     * [Check the inputted vault tokens are in the right proportions, if not, adjust, then mint.]
+     * [Check the input vault tokens are in the right proportions, if not, adjust, then mint.]
      *
      **/
     function mint(
@@ -54,6 +60,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             require(success, "failed to transfer tokens, check allowance");
         }
 
+        //1. USDC price - assume is 1 USD
+        //2. Get ETH and DAI prices from uniswap to the USDC pair
+        //3. Use the Maker Oracle for the Bal price / if complex, make own twap
+
         // this will ensure that the deposited amount does not break the
         // slack assumptions and revert otherwise
         // after this call, the balance of BPT of this contract will have increased
@@ -67,6 +77,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         return amountToMint;
     }
+
+    function 
+
 
     function redeem(
         uint256 _gyroAmountBurned,
