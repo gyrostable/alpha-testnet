@@ -24,7 +24,11 @@ Start a node
 yarn node
 ```
 
-In another terminal, deploy the contracts and export the deployment information using
+This will print the accounts, including their private keys.
+The first account holds many different tokens so we recommend importing
+this account to MetaMask using its private key.
+
+Then, in another terminal, deploy the contracts and export the deployment information using
 
 ```
 yarn deploy
