@@ -163,6 +163,7 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
 contract BalancerTokenRouter is GyroRouter, Ownable {
     function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
         external
+        pure
         override
         returns (address[] memory, uint256[] memory)
     {
@@ -171,6 +172,7 @@ contract BalancerTokenRouter is GyroRouter, Ownable {
 
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
         external
+        pure
         override
         returns (address[] memory, uint256[] memory)
     {
