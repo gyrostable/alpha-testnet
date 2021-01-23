@@ -15,14 +15,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   for (const token of initConfig.tokens) {
     const deploymentName = `${token.symbol}ERC20`;
-    await deploy(deploymentName, {
+    const deploymentResult = await deploy(deploymentName, {
       contract: "SimpleERC20",
       from: deployer.address,
       args: [token.name, token.symbol, token.decimals],
       log: true,
       deterministicDeployment: true,
     });
-    await execute(deploymentName, { from: deployer.address }, "initializeOwner");
+    if (deploymentResult.newlyDeployed) {
+      await execute(deploymentName, { from: deployer.address }, "initializeOwner");
+    }
 
     await execute(
       deploymentName,

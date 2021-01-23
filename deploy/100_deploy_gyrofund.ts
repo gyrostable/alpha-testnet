@@ -14,7 +14,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     deterministicDeployment: true,
   });
-  await execute("GyroRouter", { from: deployer.address }, "initializeOwner");
+  if (routerDeployment.newlyDeployed) {
+    await execute("GyroRouter", { from: deployer.address }, "initializeOwner");
+  }
+
+  const balancerExternalTokenRouterDeployment = await deploy("BalancerExternalTokenRouter", {
+    from: deployer.address,
+    args: [],
+    log: true,
+    deterministicDeployment: true,
+  });
+  if (balancerExternalTokenRouterDeployment.newlyDeployed) {
+    await execute("BalancerExternalTokenRouter", { from: deployer.address }, "initializeOwner");
+  }
 
   const oracleDeployment = await deploy("GyroPriceOracle", {
     from: deployer.address,
@@ -24,13 +36,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: true,
   });
 
-  await deploy("GyroFundV1", {
+  const gyroFundDeployment = await deploy("GyroFundV1", {
     from: deployer.address,
     args: [oracleDeployment.address, routerDeployment.address],
     log: true,
     deterministicDeployment: true,
   });
-  await execute("GyroFundV1", { from: deployer.address }, "initializeOwner");
+  if (gyroFundDeployment.newlyDeployed) {
+    await execute("GyroFundV1", { from: deployer.address }, "initializeOwner");
+  }
 };
 
 export default func;

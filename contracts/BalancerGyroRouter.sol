@@ -10,7 +10,12 @@ import "./Ownable.sol";
 contract BalancerExternalTokenRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
 
+    event UnderlyingTokensDeposited(address[] indexed bpAddresses, uint256[] indexed bpAmounts);
+
     function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {
+        address[] memory _bpAddresses = new address[](_tokensIn.length);
+        uint256[] memory _bpAmounts = new uint256[](_amountsIn.length);
+
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             address token = _tokensIn[i];
             uint256 amount = _amountsIn[i];
@@ -24,7 +29,12 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
 
             success = pool.transfer(msg.sender, poolAmountOut);
             require(success, "failed to transfer BPT to GyroFund");
+
+            _bpAmounts[i] = poolAmountOut;
+            _bpAddresses[i] = address(pool);
         }
+
+        emit UnderlyingTokensDeposited(_bpAddresses, _bpAmounts);
     }
 
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut) external override {
