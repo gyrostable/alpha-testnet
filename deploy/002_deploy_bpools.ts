@@ -73,7 +73,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       );
     }
 
-    console.log(deploymentName);
     const swapFee = TEN.pow(12).mul(pool.swap_fee);
     await execute(deploymentName, deployOptions, "setSwapFee", swapFee.toString());
 

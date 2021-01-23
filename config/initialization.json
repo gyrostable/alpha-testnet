@@ -4,7 +4,7 @@
       "name": "usdt_xaut",
       "assets": [
         { "symbol": "USDT", "amount": 50000, "weight": 5 },
-        { "symbol": "XAUT", "amount": 50000, "weight": 5 }
+        { "symbol": "XAUt", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
     },
@@ -43,7 +43,7 @@
     {
       "name": "susd_weth",
       "assets": [
-        { "symbol": "SUSD", "amount": 50000, "weight": 5 },
+        { "symbol": "sUSD", "amount": 50000, "weight": 5 },
         { "symbol": "WETH", "amount": 50000, "weight": 5 }
       ],
       "swap_fee": 1000
@@ -58,18 +58,59 @@
     }
   ],
   "tokens": [
-    { "name": "usdt", "symbol": "USDT", "decimals": 6, "balance": 1000, "price": 1000000 },
-    { "name": "xaut", "symbol": "XAUT", "decimals": 6, "balance": 1000, "price": 1800000000 },
-    { "name": "tusd", "symbol": "TUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
-    { "name": "tgbp", "symbol": "TGBP", "decimals": 18, "balance": 1000, "price": 1440000 },
-    { "name": "pax", "symbol": "PAX", "decimals": 18, "balance": 1000, "price": 1000000 },
-    { "name": "paxg", "symbol": "PAXG", "decimals": 18, "balance": 1000, "price": 1850000000 },
-    { "name": "usdc", "symbol": "USDC", "decimals": 6, "balance": 1000, "price": 1000000 },
-    { "name": "eurs", "symbol": "EURS", "decimals": 2, "balance": 1000, "price": 1250000 },
-    { "name": "weth", "symbol": "WETH", "decimals": 18, "balance": 1000, "price": 1250000000 },
-    { "name": "dai", "symbol": "DAI", "decimals": 18, "balance": 1000, "price": 1000000 },
-    { "name": "susd", "symbol": "SUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
-    { "name": "esd", "symbol": "ESD", "decimals": 18, "balance": 1000, "price": 1000000 }
+    { "name": "Tether USD", "symbol": "USDT", "decimals": 6, "balance": 1000, "price": 1000000 },
+    {
+      "name": "Gold Tether",
+      "symbol": "XAUt",
+      "decimals": 6,
+      "balance": 1000,
+      "price": 1800000000
+    },
+    { "name": "TrueUSD", "symbol": "TUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
+    { "name": "TrueGBP", "symbol": "TGBP", "decimals": 18, "balance": 1000, "price": 1440000 },
+    {
+      "name": "Paxos Standard",
+      "symbol": "PAX",
+      "decimals": 18,
+      "balance": 1000,
+      "price": 1000000
+    },
+    {
+      "name": "Paxos Gold",
+      "symbol": "PAXG",
+      "decimals": 18,
+      "balance": 1000,
+      "price": 1850000000
+    },
+    { "name": "USD Coin", "symbol": "USDC", "decimals": 6, "balance": 1000, "price": 1000000 },
+    {
+      "name": "STASIS EURS Token",
+      "symbol": "EURS",
+      "decimals": 2,
+      "balance": 1000,
+      "price": 1250000
+    },
+    {
+      "name": "Wrapped Ether",
+      "symbol": "WETH",
+      "decimals": 18,
+      "balance": 1000,
+      "price": 1250000000
+    },
+    {
+      "name": "Dai Stablecoin",
+      "symbol": "DAI",
+      "decimals": 18,
+      "balance": 1000,
+      "price": 1000000
+    },
+    { "name": "Synth sUSD", "symbol": "sUSD", "decimals": 18, "balance": 1000, "price": 1000000 },
+    {
+      "name": "Empty Set Dollar",
+      "symbol": "ESD",
+      "decimals": 18,
+      "balance": 1000,
+      "price": 1000000
+    }
   ]
 }
-

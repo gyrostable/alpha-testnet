@@ -9,6 +9,7 @@ import "./Ownable.sol";
 
 contract BalancerExternalTokenRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
+    address[] public tokens;
 
     event UnderlyingTokensDeposited(address[] indexed bpAddresses, uint256[] indexed bpAmounts);
 
@@ -103,6 +104,9 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         for (uint256 i = 0; i < poolTokens.length; i++) {
             address tokenAddress = poolTokens[i];
             address[] storage currentPools = pools[tokenAddress];
+            if (currentPools.length == 0) {
+                tokens.push(tokenAddress);
+            }
             bool exists = false;
             for (uint256 j = 0; j < currentPools.length; j++) {
                 if (currentPools[j] == _poolAddress) {
@@ -115,6 +119,14 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
                 IERC20(tokenAddress).approve(_poolAddress, uint256(-1));
             }
         }
+    }
+
+    function allTokens() external view returns (address[] memory) {
+        address[] memory _tokens = new address[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _tokens[i] = tokens[i];
+        }
+        return _tokens;
     }
 }
 
