@@ -61,7 +61,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
         return amounts;
     }
 
-    function getBptPrice(
+    function getBPTPrice(
         address _bPoolAddress,
         address[] memory _tokenAddresses,
         uint256[] memory _underlyingPrices
