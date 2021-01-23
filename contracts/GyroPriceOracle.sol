@@ -4,8 +4,13 @@ pragma solidity ^0.7.0;
 import "hardhat/console.sol";
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
+import "./compound/UniswapAnchoredView.sol";
 
 import "./ExtendedMath.sol";
+
+interface PriceOracle {
+    function getPrice(address token, string tokenSymbol) external returns (uint256);
+}
 
 interface GyroPriceOracle {
     function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
@@ -17,6 +22,7 @@ interface GyroPriceOracle {
         external
         view
         returns (uint256[] memory _amountsOut);
+
 
     // function getBptPrice(
     //     address _bPoolAddress,
@@ -92,3 +98,39 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
         return _k.mul(_weightedProd).div(_bptSupply.fromUInt()).toUInt();
     }
 }
+
+contract CompoundPriceWrapper is PriceOracle {
+    address compoundOracle;
+    UniswapAnchoredView private uniswapanchor;
+
+    constructor(address _compoundOracle) {
+        compoundOracle = _compoundOracle;
+    }
+
+    function getPrice(address token, string tokenSymbol) external returns (uint256) {
+        uniswapanchor = UniswapAnchoredView(_compoundOracle);
+        return uniswapanchor.price(tokenSymbol);
+    }
+}
+
+contract MakerPriceWrapper is PriceOracle {
+    address makerOracle;
+
+    constructor(address _makerOracle) {
+        makerOracle = _makerOracle;
+    }
+
+    function getPrice(address token, string tokenSymbol) external returns (uint256) {
+        return UniswapPriceOracle(makerOracle).getPriceOtherName(token);
+    }
+}
+
+// DAI: uniswap
+// USDC: uniswap
+// ETH: compound
+
+register("DAI", "uniswap addrss")
+register("USDC", "uniswap addrss")
+register("ETH", "compound addrss")
+
+getPrice("ETH")
