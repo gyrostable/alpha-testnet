@@ -27,10 +27,7 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             require(success, "failed to transfer tokens from GyroFund to GryoRouter");
 
             BPool pool = BPool(choosePoolToDeposit(token, amount));
-            uint256 poolAmountOut = calcPoolOutGivenSingleIn(pool, token, amount);
-            uint256[] memory amountsIn = createAmounts(pool, token, amount);
-            pool.joinPool(poolAmountOut, amountsIn);
-
+            uint256 poolAmountOut = pool.joinswapExternAmountIn(token, amount, 0);
             success = pool.transfer(msg.sender, poolAmountOut);
             require(success, "failed to transfer BPT to GyroFund");
 
@@ -56,53 +53,12 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             bool success = pool.transferFrom(msg.sender, address(this), poolAmountIn);
             require(success, "failed to transfer BPT from GyroFund to GryoRouter");
 
-            uint256[] memory amountsOut = createAmounts(pool, token, amount);
-            pool.exitPool(poolAmountIn, amountsOut);
+            pool.exitswapExternAmountOut(token, amount, 0);
 
             success = IERC20(token).transfer(msg.sender, amount);
             require(success, "failed to transfer token to GyroFund");
         }
         return (_tokensOut, _amountsOut);
-    }
-
-    function createAmounts(
-        BPool pool,
-        address token,
-        uint256 amount
-    ) internal view returns (uint256[] memory) {
-        address[] memory poolTokens = pool.getFinalTokens();
-        uint256[] memory amounts = new uint256[](poolTokens.length);
-        bool found = false;
-        for (uint256 i = 0; i < poolTokens.length; i++) {
-            if (poolTokens[i] == token) {
-                amounts[i] = amount;
-                found = true;
-                break;
-            }
-        }
-        require(found, "token not found in pool");
-        return amounts;
-    }
-
-    function calcPoolOutGivenSingleIn(
-        BPool pool,
-        address _token,
-        uint256 _amount
-    ) internal view returns (uint256) {
-        uint256 tokenBalanceIn = pool.getBalance(_token);
-        uint256 tokenWeightIn = pool.getDenormalizedWeight(_token);
-        uint256 poolSupply = pool.totalSupply();
-        uint256 totalWeight = pool.getTotalDenormalizedWeight();
-        uint256 swapFee = pool.getSwapFee();
-        return
-            pool.calcPoolOutGivenSingleIn(
-                tokenBalanceIn,
-                tokenWeightIn,
-                poolSupply,
-                totalWeight,
-                _amount,
-                swapFee
-            );
     }
 
     function calcPoolInGivenSingleOut(
@@ -145,7 +101,8 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         require(pool.isFinalized(), "can only add finalized pools");
         address[] memory poolTokens = pool.getFinalTokens();
         for (uint256 i = 0; i < poolTokens.length; i++) {
-            address[] storage currentPools = pools[poolTokens[i]];
+            address tokenAddress = poolTokens[i];
+            address[] storage currentPools = pools[tokenAddress];
             bool exists = false;
             for (uint256 j = 0; j < currentPools.length; j++) {
                 if (currentPools[j] == _poolAddress) {
@@ -155,6 +112,7 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             }
             if (!exists) {
                 currentPools.push(_poolAddress);
+                IERC20(tokenAddress).approve(_poolAddress, uint256(-1));
             }
         }
     }

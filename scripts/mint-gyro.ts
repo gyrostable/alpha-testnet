@@ -1,27 +1,15 @@
-import { Contract } from "ethers";
-import hre from "hardhat";
-const { deployments, ethers } = hre;
-
 import BN from "bn.js";
-
-import { ERC20 } from "../typechain/ERC20";
-import { BPool } from "../typechain/BPool";
-import { GyroFund } from "../typechain/GyroFund";
+import hre from "hardhat";
+import { BPool__factory as BPoolFactory } from "../typechain/factories/BPool__factory";
+import { GyroFund__factory as GyroFundFactory } from "../typechain/factories/GyroFund__factory";
+const { deployments, ethers } = hre;
 
 async function main() {
   const [account] = await ethers.getSigners();
   const wethDaiPoolDeployment = await deployments.get("BPoolweth_dai");
   const gyroFundDeployment = await deployments.get("GyroFundV1");
-  const gyroFund = new Contract(
-    gyroFundDeployment.address,
-    gyroFundDeployment.abi,
-    account
-  ) as GyroFund;
-  const wethDaiPool = new Contract(
-    wethDaiPoolDeployment.address,
-    wethDaiPoolDeployment.abi,
-    account
-  ) as BPool;
+  const gyroFund = GyroFundFactory.connect(gyroFundDeployment.address, account);
+  const wethDaiPool = BPoolFactory.connect(wethDaiPoolDeployment.address, account);
 
   const ten = new BN(10).pow(new BN(19)).toString();
   await wethDaiPool.approve(gyroFund.address, ten);

@@ -1,11 +1,8 @@
-import { Contract } from "ethers";
-import hre from "hardhat";
-const { deployments, ethers } = hre;
-
 import BN from "bn.js";
-
-import { ERC20 } from "../typechain/ERC20";
-import { BPool } from "../typechain/BPool";
+import hre from "hardhat";
+import { BPool__factory as BPoolFactory } from "../typechain/factories/BPool__factory";
+import { ERC20__factory as ERC20Factory } from "../typechain/factories/ERC20__factory";
+const { deployments, ethers } = hre;
 
 async function main() {
   const [account] = await ethers.getSigners();
@@ -15,17 +12,13 @@ async function main() {
 
   const MILLION = new BN(10).pow(new BN(24));
 
-  const dai = new Contract(daiDeployment.address, daiDeployment.abi, account) as ERC20;
+  const dai = ERC20Factory.connect(daiDeployment.address, account);
   await dai.approve(wethDaiPoolDeployment.address, MILLION.toString());
 
-  const weth = new Contract(wethDeployment.address, wethDeployment.abi, account) as ERC20;
+  const weth = ERC20Factory.connect(wethDeployment.address, account);
   await weth.approve(wethDaiPoolDeployment.address, MILLION.toString());
 
-  const wethDaiPool = new Contract(
-    wethDaiPoolDeployment.address,
-    wethDaiPoolDeployment.abi,
-    account
-  ) as BPool;
+  const wethDaiPool = BPoolFactory.connect(wethDaiPoolDeployment.address, account);
 
   const ethAmount = new BN(2).mul(new BN(10).pow(new BN(18))).toString();
   const daiAmount = new BN(2500).mul(new BN(10).pow(new BN(18))).toString();

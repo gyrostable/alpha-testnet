@@ -5,15 +5,15 @@ import "./BalancerGyroRouter.sol";
 import "./GyroFund.sol";
 
 contract GyroLib {
-    BalancerExternalTokenRouter externalTokensRouter;
     GyroFund fund;
+    BalancerExternalTokenRouter externalTokensRouter;
 
-    constructor(address externalTokensRouterAddress, address gyroFundAddress) {
-        externalTokensRouter = BalancerExternalTokenRouter(externalTokensRouterAddress);
+    constructor(address gyroFundAddress, address externalTokensRouterAddress) {
         fund = GyroFund(gyroFundAddress);
+        externalTokensRouter = BalancerExternalTokenRouter(externalTokensRouterAddress);
     }
 
-    function mintFromArbitraryTokens(
+    function mintFromUnderlyingTokens(
         address[] memory _tokensIn,
         uint256[] memory _amountsIn,
         uint256 _minAmountOut
@@ -22,9 +22,15 @@ contract GyroLib {
             bool success =
                 IERC20(_tokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
             require(success, "failed to transfer tokens from GyroFund to GryoRouter");
+            IERC20(_tokensIn[i]).approve(address(externalTokensRouter), _amountsIn[i]);
         }
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.deposit(_tokensIn, _amountsIn);
-        return fund.mint(bptTokens, amounts, _minAmountOut);
+        for (uint256 i = 0; i < bptTokens.length; i++) {
+            IERC20(bptTokens[i]).approve(address(fund), amounts[i]);
+        }
+        uint256 minted = fund.mint(bptTokens, amounts, _minAmountOut);
+        require(fund.transfer(msg.sender, minted), "failed to send back gyro");
+        return minted;
     }
 }

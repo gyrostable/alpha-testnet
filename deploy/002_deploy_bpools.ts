@@ -1,14 +1,14 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import BN from "bn.js";
+import { BigNumber } from "ethers";
 
 import BPoolArtifact from "../artifacts/contracts/balancer/BPool.sol/BPool.json";
 import BFactoryArtifact from "../artifacts/contracts/balancer/BFactory.sol/BFactory.json";
 
-import initConfig from "../initialization.json";
+import initConfig from "../config/initialization.json";
 
-const TEN = new BN(10);
+const TEN = BigNumber.from(10);
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await ethers.getSigners();
@@ -26,9 +26,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  const prices: Record<string, BN> = {};
+  const prices: Record<string, BigNumber> = {};
   for (const token of initConfig.tokens) {
-    prices[token.symbol] = new BN(token.price);
+    prices[token.symbol] = BigNumber.from(token.price);
   }
 
   const pools = initConfig.balancer_pools;
@@ -58,13 +58,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
 
     for (const asset of pool.assets) {
-      const balance = new BN(asset.amount)
-        .mul(TEN.pow(new BN(24)))
-        .div(prices[asset.symbol])
-        .toString();
+      const balance = TEN.pow(24).mul(asset.amount).div(prices[asset.symbol]);
       console.log(`${asset.symbol} balance: ${balance.toString()}`);
       const tokenAddress = tokenAddresses[asset.symbol];
-      const denorm = new BN(asset.weight).mul(TEN.pow(new BN(18)));
+      const denorm = TEN.pow(18).mul(asset.weight);
       await execute(`${asset.symbol}ERC20`, deployOptions, "approve", address, balance);
       await execute(
         deploymentName,
@@ -77,7 +74,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     console.log(deploymentName);
-    const swapFee = new BN(pool.swap_fee).mul(TEN.pow(new BN(12)));
+    const swapFee = TEN.pow(12).mul(pool.swap_fee);
     await execute(deploymentName, deployOptions, "setSwapFee", swapFee.toString());
 
     await execute(deploymentName, deployOptions, "finalize");
