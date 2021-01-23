@@ -32,6 +32,8 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
+    "node": "yarn hardhat node --show-accounts --no-deploy",
+    "deploy": "npx hardhat deploy --network localhost --reset",
     "export": "npx hardhat export --export artifacts/deployment.json --network localhost"
   },
   "prettier": {
