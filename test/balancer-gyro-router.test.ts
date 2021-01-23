@@ -2,13 +2,14 @@ import { deployContract, deployMockContract, MockContract } from "ethereum-waffl
 import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import BalancerPoolArtifact from "../artifacts/contracts/balancer/BPool.sol/BPool.json";
-import BalancerGyroRouterArtifact from "../artifacts/contracts/BalancerGyroRouter.sol/BalancerGyroRouter.json";
+import BalancerExternalTokenRouterArtifact from "../artifacts/contracts/BalancerGyroRouter.sol/BalancerExternalTokenRouter.json";
 import { BalancerGyroRouter } from "../typechain/BalancerGyroRouter";
+import { Ownable } from "../typechain/Ownable";
 import { expect } from "./chai";
 
 describe("BalancerGyroRouter", function () {
   let accounts: Signer[];
-  let router: BalancerGyroRouter;
+  let router: BalancerGyroRouter & Ownable;
   let mockPools: MockContract[];
 
   const dummyAddresses = [
@@ -27,7 +28,11 @@ describe("BalancerGyroRouter", function () {
       deployMockContract(wallet, BalancerPoolArtifact.abi),
     ]);
 
-    router = (await deployContract(wallet, BalancerGyroRouterArtifact)) as BalancerGyroRouter;
+    router = (await deployContract(
+      wallet,
+      BalancerExternalTokenRouterArtifact
+    )) as BalancerGyroRouter & Ownable;
+    await router.initializeOwner();
   });
 
   describe("addPool", function () {

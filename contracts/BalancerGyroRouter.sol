@@ -12,7 +12,11 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
 
     event UnderlyingTokensDeposited(address[] indexed bpAddresses, uint256[] indexed bpAmounts);
 
-    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {
+    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        override
+        returns (address[] memory, uint256[] memory)
+    {
         address[] memory _bpAddresses = new address[](_tokensIn.length);
         uint256[] memory _bpAmounts = new uint256[](_amountsIn.length);
 
@@ -35,9 +39,14 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         }
 
         emit UnderlyingTokensDeposited(_bpAddresses, _bpAmounts);
+        return (_bpAddresses, _bpAmounts);
     }
 
-    function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut) external override {
+    function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
+        external
+        override
+        returns (address[] memory, uint256[] memory)
+    {
         for (uint256 i = 0; i < _tokensOut.length; i++) {
             address token = _tokensOut[i];
             uint256 amount = _amountsOut[i];
@@ -53,6 +62,7 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             success = IERC20(token).transfer(msg.sender, amount);
             require(success, "failed to transfer token to GyroFund");
         }
+        return (_tokensOut, _amountsOut);
     }
 
     function createAmounts(
@@ -151,10 +161,19 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
 }
 
 contract BalancerTokenRouter is GyroRouter, Ownable {
-    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn) external override {}
+    function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        override
+        returns (address[] memory, uint256[] memory)
+    {
+        return (_tokensIn, _amountsIn);
+    }
 
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
         external
         override
-    {}
+        returns (address[] memory, uint256[] memory)
+    {
+        return (_tokensOut, _amountsOut);
+    }
 }
