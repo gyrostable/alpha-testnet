@@ -25,11 +25,31 @@ async function main() {
     await erc20.approve(gyroLib.address, amount);
   }
 
-  await gyroLib.mintFromUnderlyingTokens(
+  const tx = await gyroLib.mintFromUnderlyingTokens(
     tokens.map((t) => t.address),
     tokens.map((t) => t.amount),
     0
   );
+  const receipt = await tx.wait();
+
+  function notEmpty<T>(value: T | null | undefined): value is T {
+    return value !== null && value !== undefined;
+  }
+
+  const events = receipt.logs
+    .map((v) => {
+      try {
+        return gyroFund.interface.parseLog(v);
+      } catch (e) {
+        return null;
+      }
+    })
+    .filter(notEmpty);
+
+  const mintEvent = events.find((evt) => evt.name === "Mint")!!;
+  const minted = mintEvent.args.amount.div(ONE).toString();
+  console.log(`gas used: ${receipt.gasUsed}`);
+  console.log(`amount minted: ${minted}`);
 
   const gyroToken = { address: gyroFund.address, name: "gyro" };
   for (const { name, address } of [gyroToken].concat(tokens)) {

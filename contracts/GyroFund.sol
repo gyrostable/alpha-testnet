@@ -10,6 +10,9 @@ import "./GyroRouter.sol";
 import "./Ownable.sol";
 
 interface GyroFund is IERC20 {
+    event Mint(address minter, uint256 amount);
+    event Redeem(address redeemer, uint256 amount);
+
     function mint(
         address[] memory _tokensIn,
         uint256[] memory _amountsIn,
@@ -59,13 +62,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         // after this call, the balance of BPT of this contract will have increased
         gyroRouter.deposit(_tokensIn, _amountsIn);
 
-        uint256 amountToMint = gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
+        uint256 _amountToMint = gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
 
-        require(amountToMint >= _minGyroMinted, "too much slippage");
+        require(_amountToMint >= _minGyroMinted, "too much slippage");
 
-        _mint(msg.sender, amountToMint);
+        _mint(msg.sender, _amountToMint);
 
-        return amountToMint;
+        emit Mint(msg.sender, _amountToMint);
+
+        return _amountToMint;
     }
 
     function redeem(
@@ -89,6 +94,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                 IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
             require(success, "failed to transfer tokens");
         }
+
+        emit Redeem(msg.sender, _gyroAmountBurned);
 
         return amountsOut;
     }
