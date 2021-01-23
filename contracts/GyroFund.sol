@@ -22,37 +22,73 @@ interface GyroFund is IERC20 {
         uint256[] memory _minValuesOut
     ) external returns (uint256[] memory);
 
-    function 
+    function getPoolAddresses() public returns (address[]);
+
+    function getPoolWeights() public returns (uint256);
+
+    function getStablecoinAddresses() public returns (address[]);
+
+    function getTotalNumberOfPools() public returns (uint256);
+ 
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     GyroPriceOracle gyroPriceOracle;
     GyroRouter gyroRouter;
 
-    constructor(address _priceOracleAddress, address _routerAddress)
+    mapping(address => bool) _checkPoolIsValid;
+
+    constructor(address[] _gyroPoolAddresses, address _priceOracleAddress, address _routerAddress)
         ERC20("Gyro Stable Coin", "GYRO")
     {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
+        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
+            _checkPoolIsValid[_gyroPoolAddresses[i]] = true;
+        }
 
     }
 
-        address immutable daiethpool = 0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a;
-        address immutable usdcethpool = 0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf;
+    address immutable daiethpool = '0x..';
+    address immutable usdcethpool = '0x..';
+
+    uint256 constant daiethpoolweight = 1;
+    uint256 constant usdcethpoolweight = 1;
+
+    address immutable dai = '0x..';
+    address immutable usdc = '0x..';
+
+    function getPoolWeights() public returns (uint256[]) {
+        return(daiethpoolweight, usdcethpoolweight);
+    }
+
+    function getPoolAddresses() public returns (address[]) {
+        return(daiethpool, usdcethpool);
+    }
+
+    function getStablecoinAddresses() public returns (address[]) {
+        return(dai,usdc);
+    }
+
 
     /**
      * [Check the input vault tokens are in the right proportions, if not, adjust, then mint.]
      *
      **/
     function mint(
-        address[] memory _tokensIn,
+        address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
     ) public override returns (uint256) {
         require(
-            _tokensIn.length == _amountsIn.length,
+            _BPTokensIn.length == _amountsIn.length,
             "tokensIn and valuesIn should have the same number of elements"
         );
+
+        //Require that the tokens are supported
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            require(_checkPoolIsValid[_BPTokensIn[i]], "Input token invalid");
+        }
 
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             bool success =
@@ -77,9 +113,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         return amountToMint;
     }
-
-    function 
-
 
     function redeem(
         uint256 _gyroAmountBurned,
