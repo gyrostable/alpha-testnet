@@ -3,20 +3,17 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import BalancerPoolArtifact from "../artifacts/contracts/balancer/BPool.sol/BPool.json";
 import BalancerExternalTokenRouterArtifact from "../artifacts/contracts/BalancerGyroRouter.sol/BalancerExternalTokenRouter.json";
-import { BalancerGyroRouter } from "../typechain/BalancerGyroRouter";
-import { Ownable } from "../typechain/Ownable";
+import { BalancerExternalTokenRouter } from "../typechain/BalancerExternalTokenRouter";
+import { ERC20 } from "../typechain/ERC20";
+import { BalancerExternalTokenRouter__factory as BalancerExternalTokenRouterFactory } from "../typechain/factories/BalancerExternalTokenRouter__factory";
+import { ERC20__factory as ERC20Factory } from "../typechain/factories/ERC20__factory";
 import { expect } from "./chai";
 
 describe("BalancerGyroRouter", function () {
   let accounts: Signer[];
-  let router: BalancerGyroRouter & Ownable;
+  let router: BalancerExternalTokenRouter;
   let mockPools: MockContract[];
-
-  const dummyAddresses = [
-    "0x88a5c2d9919e46f883eb62f7b8dd9d0cc45bc290",
-    "0x14791697260E4c9A71f18484C9f997B308e59325",
-    "0xaC39b311DCEb2A4b2f5d8461c1cdaF756F4F7Ae9",
-  ];
+  let tokens: ERC20[];
 
   beforeEach(async function () {
     accounts = await ethers.getSigners();
@@ -28,17 +25,20 @@ describe("BalancerGyroRouter", function () {
       deployMockContract(wallet, BalancerPoolArtifact.abi),
     ]);
 
-    router = (await deployContract(
-      wallet,
-      BalancerExternalTokenRouterArtifact
-    )) as BalancerGyroRouter & Ownable;
+    tokens = await Promise.all([
+      new ERC20Factory(wallet).deploy("token1", "TOK1"),
+      new ERC20Factory(wallet).deploy("token2", "TOK2"),
+      new ERC20Factory(wallet).deploy("token3", "TOK3"),
+    ]);
+    router = await new BalancerExternalTokenRouterFactory(wallet).deploy();
+
     await router.initializeOwner();
   });
 
   describe("addPool", function () {
     it("should add a pool with all its tokens", async function () {
       const [pool1, pool2] = mockPools.slice(0, 2);
-      const [token1, token2, token3] = dummyAddresses.slice(0, 3);
+      const [token1, token2, token3] = tokens.map((v) => v.address);
       await pool1.mock.isFinalized.returns(true);
 
       await pool1.mock.getFinalTokens.returns([token1, token2]);
