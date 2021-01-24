@@ -81,7 +81,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                 address[] _underlyingTokens, 
                 address[] _underlyingTokenOracleAddresses, 
                 bytes32[] _underlyingTokenSymbols,
-                address[] _stablecoinAddresses,
+                address[] _stablecoinAddresses
                 )
                 
         ERC20("Gyro Stable Coin", "GYRO")
