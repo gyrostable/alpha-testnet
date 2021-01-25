@@ -63,9 +63,8 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
 
     function getBPTPrice(
         address _bPoolAddress,
-        address[] memory _tokenAddresses,
         uint256[] memory _underlyingPrices
-    ) external view returns (uint64 _bptPrice) {
+    ) public view returns (uint64 _bptPrice) {
         /* calculations:
             bptSupply = # of BPT tokens
             bPoolWeights = array of pool weights (require _underlyingPrices comes in same order)
@@ -99,7 +98,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
     }
 }
 
-contract CompoundPriceWrapper is PriceOracle {
+abstract contract CompoundPriceWrapper is PriceOracle {
     address compoundOracle;
     UniswapAnchoredView private uniswapanchor;
 
@@ -107,7 +106,7 @@ contract CompoundPriceWrapper is PriceOracle {
         compoundOracle = _compoundOracle;
     }
 
-    function getPrice(address token, bytes32 tokenSymbol) external returns (uint256) {
+    function getPrice(address token, string memory tokenSymbol) public returns (uint256) {
         uniswapanchor = UniswapAnchoredView(compoundOracle);
         return uniswapanchor.price(tokenSymbol);
     }
