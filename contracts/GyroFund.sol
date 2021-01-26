@@ -135,6 +135,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function calculateImpliedPoolWeights(uint256[] memory _BPTPrices)
         public
+        view
         returns (uint256[] memory)
     {
         // order of _BPTPrices must be same as order of poolProperties
@@ -167,6 +168,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function calculatePortfolioWeights(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
         public
+        pure
         returns (uint256[] memory)
     {
         uint256[] memory _weights;
@@ -185,6 +187,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function checkStablecoinHealth(uint256 stablecoinPrice, address stablecoinAddress)
         public
+        pure
         returns (bool)
     {
         // TODO: revisit
@@ -202,7 +205,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _stablecoinHealthy;
     }
 
-    function absValue(int128 _number) public returns (int128) {
+    function absValue(int128 _number) public pure returns (int128) {
         if (_number >= 0) {
             return _number;
         } else {
@@ -240,7 +243,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
-    ) public override returns (uint256) {
+    ) public override returns (uint256 amountToMint) {
         require(
             _BPTokensIn.length == _amountsIn.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -399,7 +402,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         if (_launch) {
-            uint256 amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
+            amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
 
             require(amountToMint >= _minGyroMinted, "too much slippage");
 

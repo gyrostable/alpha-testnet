@@ -107,7 +107,7 @@ abstract contract CompoundPriceWrapper is PriceOracle {
         compoundOracle = _compoundOracle;
     }
 
-    function getPrice(address token, string memory tokenSymbol) public returns (uint256) {
+    function getPrice(string memory tokenSymbol) public returns (uint256) {
         uniswapanchor = UniswapAnchoredView(compoundOracle);
         return uniswapanchor.price(tokenSymbol);
     }
