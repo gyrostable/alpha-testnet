@@ -68,14 +68,6 @@ contract GyroFundV1 is Ownable, ERC20 {
 
     uint256 portfolioWeightEpsilon;
 
-    address[6] addressBook =[
-
-
-
-
-    ]
-
-
 
     constructor(
         uint256 _portfolioWeightEpsilon,
@@ -249,25 +241,7 @@ contract GyroFundV1 is Ownable, ERC20 {
         _tokenAddressToProperties[token].oracleAddress = oracleAddress;
     }
 
-    //_amountsIn in should have a zero index if nothing has been submitted for a particular token
-    // _BPTokensIn and _amountsIn should have same indexes as poolProperties
-    function mint(
-        address[] memory _BPTokensIn,
-        uint256[] memory _amountsIn,
-        uint256 _minGyroMinted
-    ) public returns (uint256 amountToMint) {
-        require(
-            _BPTokensIn.length == _amountsIn.length,
-            "tokensIn and valuesIn should have the same number of elements"
-        );
-
-        //Filter 1: Require that the tokens are supported
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            require(_checkPoolIsValid[_BPTokensIn[i]], "Input token invalid");
-        }
-
-        uint256[] memory _currentBPTPrices;
-        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+    function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices) public view returns (uint256[] memory _currentBPTPrices) {
 
         // Calculate BPT prices for all pools
         for (uint256 i = 0; i < poolProperties.length; i++) {
@@ -288,69 +262,121 @@ contract GyroFundV1 is Ownable, ERC20 {
                 poolProperties[i].poolAddress,
                 _bPoolUnderlyingTokenPrices
             );
+
+            return _currentBPTPrices;
         }
+    }
 
-        //Calculate the up to date ideal portfolio weights
-        uint256[] memory _idealWeights = calculateImpliedPoolWeights(_currentBPTPrices);
+    function poolHealthHelper(uint256[] memory _allUnderlyingPrices, 
+                              uint256 _poolIndex, 
+                              address[] memory _BPTokensIn) 
+                              public view returns(bool[] memory _inputPoolHealth, bool _allPoolsHealthy) {
 
-        //Calculate the hypothetical weights if the new BPT tokens were added
-        uint256[] memory _BPTNewAmounts;
-        uint256[] memory _BPTCurrentAmounts;
+        _inputPoolHealth[_poolIndex] = true;
+        BPool _bPool = BPool(poolProperties[_poolIndex].poolAddress);
+        address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
+        
+        //Go through the underlying tokens within the pool
+        for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
+            if (_checkIsStablecoin[_bPoolUnderlyingTokens[j]]) {
+                uint256 _stablecoinPrice =
+                    _allUnderlyingPrices[
+                        _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
+                    ];
 
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            BPool _bPool = BPool(_BPTokensIn[i]);
-            _BPTCurrentAmounts[i] = _bPool.balanceOf(msg.sender);
-            _BPTNewAmounts[i] = _BPTCurrentAmounts[i] + _amountsIn[i];
+                if (!checkStablecoinHealth(_stablecoinPrice, _BPTokensIn[_poolIndex])) {
+                    _inputPoolHealth[_poolIndex] = false;
+                    _allPoolsHealthy = false;
+                    break;
+                }
+            }
         }
+    }
 
-        uint256[] memory _currentWeights =
-            calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
+    function checkAllPoolsHealthy(address[] memory _BPTokensIn, 
+                                  uint256[] memory _hypotheticalWeights, 
+                                  uint256[] memory _idealWeights, 
+                                  uint256[] memory _allUnderlyingPrices) 
+                                  public view returns (bool, bool, bool[] memory) {
 
-        uint256[] memory _hypotheticalWeights =
-            calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
-
-        uint256 _portfolioWeightEpsilon = portfolioWeightEpsilon;
-
-        bool _launch = false;
+        // Check safety of input tokens
         bool _allPoolsWithinEpsilon = true;
         bool[] memory _poolsWithinEpsilon;
         bool[] memory _inputPoolHealth;
         bool _allPoolsHealthy = true;
 
-        // Core minting logic
-        // Check safety of input tokens
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             // Check 1: check whether hypothetical weight will be within epsilon
             _poolsWithinEpsilon[i] = true;
-            if (_hypotheticalWeights[i] >= _idealWeights[i].add(_portfolioWeightEpsilon)) {
+            if (_hypotheticalWeights[i] >= _idealWeights[i].add(portfolioWeightEpsilon)) {
                 _allPoolsWithinEpsilon = false;
                 _poolsWithinEpsilon[i] = false;
-            } else if (_hypotheticalWeights[i].add(_portfolioWeightEpsilon) <= _idealWeights[i]) {
+            } else if (_hypotheticalWeights[i].add(portfolioWeightEpsilon) <= _idealWeights[i]) {
                 _allPoolsWithinEpsilon = false;
                 _poolsWithinEpsilon[i] = false;
             }
 
-            _inputPoolHealth[i] = true;
+            (_inputPoolHealth, _allPoolsHealthy) = poolHealthHelper(_allUnderlyingPrices, i, _BPTokensIn);
 
-            BPool _bPool = BPool(poolProperties[i].poolAddress);
-            address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
+        }
 
-            //Go through the underlying tokens within the pool
-            for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
-                if (_checkIsStablecoin[_bPoolUnderlyingTokens[j]]) {
-                    uint256 _stablecoinPrice =
-                        _allUnderlyingPrices[
-                            _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
-                        ];
+        return (_allPoolsHealthy, _allPoolsWithinEpsilon, _inputPoolHealth);
+    }
 
-                    if (!checkStablecoinHealth(_stablecoinPrice, _BPTokensIn[i])) {
-                        _inputPoolHealth[i] = false;
-                        _allPoolsHealthy = false;
-                        break;
-                    }
+    function safeToMintOutsideEpsilon(address[] memory _BPTokensIn, 
+                                        bool[] memory _inputPoolHealth, 
+                                        uint256[] memory _inputBPTWeights, 
+                                        uint256[] memory _idealWeights, 
+                                        uint256[] memory _hypotheticalWeights, 
+                                        uint256[] memory _currentWeights) 
+                                        public pure returns (bool _anyCheckFail) {
+        //Check that amount above epsilon is decreasing
+        //Check that unhealthy pools have input weight below ideal weight
+        //If both true, then mint
+        //note: should always be able to mint at the ideal weights!
+        _anyCheckFail = false;
+        for (uint256 i; i < _BPTokensIn.length; i++) {
+            if (!_inputPoolHealth[i]) {
+                if (_inputBPTWeights[i] > _idealWeights[i]) {
+                    _anyCheckFail = true;
+                    break;
+                }
+            }
+
+            if (!_inputPoolHealth[i]) {
+                // check if _hypotheticalWeights[i] is closer to _idealWeights[i] than _currentWeights[i]
+                int128 _idealWeight = _idealWeights[i].fromUInt();
+                int128 _distanceHypotheticalToIdeal =
+                    absValue(_hypotheticalWeights[i].fromUInt().sub(_idealWeight));
+                int128 _distanceCurrentToIdeal =
+                    absValue(_currentWeights[i].fromUInt().sub(_idealWeight));
+
+                if (_distanceHypotheticalToIdeal >= _distanceCurrentToIdeal) {
+                    _anyCheckFail = true;
+                    break;
                 }
             }
         }
+
+        if (!_anyCheckFail) {
+            return true;
+        }
+
+    }
+
+    function safeToMint(address[] memory _BPTokensIn, 
+                                  uint256[] memory _hypotheticalWeights, 
+                                  uint256[] memory _idealWeights, 
+                                  uint256[] memory _allUnderlyingPrices,
+                                  uint256[] memory _amountsIn,
+                                  uint256[] memory _currentBPTPrices,
+                                  uint256[] memory _currentWeights)
+                                  public view returns (bool _launch) {
+
+
+        _launch = false;
+
+        (bool _allPoolsHealthy, bool _allPoolsWithinEpsilon, bool[] memory _inputPoolHealth) = checkAllPoolsHealthy(_BPTokensIn, _hypotheticalWeights, _idealWeights, _allUnderlyingPrices);
 
         // if check 1 succeeds and all pools healthy, then proceed with minting
         if (_allPoolsHealthy) {
@@ -379,39 +405,77 @@ contract GyroFundV1 is Ownable, ERC20 {
             }
             //Outside of the epsilon boundary
             else {
-                //Check that amount above epsilon is decreasing
-                //Check that unhealthy pools have input weight below ideal weight
-                //If both true, then mint
-                //note: should always be able to mint at the ideal weights!
-                bool _anyCheckFail = false;
-                for (uint256 i; i < _BPTokensIn.length; i++) {
-                    if (!_inputPoolHealth[i]) {
-                        if (_inputBPTWeights[i] > _idealWeights[i]) {
-                            _anyCheckFail = true;
-                            break;
-                        }
-                    }
 
-                    if (!_poolsWithinEpsilon[i]) {
-                        // check if _hypotheticalWeights[i] is closer to _idealWeights[i] than _currentWeights[i]
-                        int128 _idealWeight = _idealWeights[i].fromUInt();
-                        int128 _distanceHypotheticalToIdeal =
-                            absValue(_hypotheticalWeights[i].fromUInt().sub(_idealWeight));
-                        int128 _distanceCurrentToIdeal =
-                            absValue(_currentWeights[i].fromUInt().sub(_idealWeight));
-
-                        if (_distanceHypotheticalToIdeal >= _distanceCurrentToIdeal) {
-                            _anyCheckFail = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!_anyCheckFail) {
-                    _launch = true;
-                }
-            }
+                _launch = safeToMintOutsideEpsilon(_BPTokensIn, 
+                                        _inputPoolHealth, 
+                                        _inputBPTWeights, 
+                                        _idealWeights, 
+                                        _hypotheticalWeights, 
+                                        _currentWeights);
+            }   
         }
+
+        return _launch;
+    }
+
+    function calculateAllWeights(uint256[] memory _currentBPTPrices, 
+                                address[] memory _BPTokensIn, 
+                                uint256[] memory _amountsIn) 
+                                public view returns (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) {
+        //Calculate the up to date ideal portfolio weights
+        _idealWeights = calculateImpliedPoolWeights(_currentBPTPrices);
+
+        //Calculate the hypothetical weights if the new BPT tokens were added
+        uint256[] memory _BPTNewAmounts;
+        uint256[] memory _BPTCurrentAmounts;
+
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            BPool _bPool = BPool(_BPTokensIn[i]);
+            _BPTCurrentAmounts[i] = _bPool.balanceOf(msg.sender);
+            _BPTNewAmounts[i] = _BPTCurrentAmounts[i] + _amountsIn[i];
+        }
+
+        _currentWeights =
+            calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
+
+        _hypotheticalWeights =
+            calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
+
+        return (_idealWeights, _currentWeights, _hypotheticalWeights);
+
+    }
+
+
+    //_amountsIn in should have a zero index if nothing has been submitted for a particular token
+    // _BPTokensIn and _amountsIn should have same indexes as poolProperties
+    function mint(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted
+    ) public returns (uint256 amountToMint) {
+        require(
+            _BPTokensIn.length == _amountsIn.length,
+            "tokensIn and valuesIn should have the same number of elements"
+        );
+
+        //Filter 1: Require that the tokens are supported
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            require(_checkPoolIsValid[_BPTokensIn[i]], "Input token invalid");
+        }
+
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+
+        (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn);
+
+        bool _launch = safeToMint(_BPTokensIn, 
+                                  _hypotheticalWeights, 
+                                  _idealWeights, 
+                                  _allUnderlyingPrices,
+                                  _amountsIn,
+                                  _currentBPTPrices,
+                                  _currentWeights);
 
         if (_launch) {
             amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
