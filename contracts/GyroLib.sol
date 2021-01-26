@@ -33,4 +33,8 @@ contract GyroLib {
         require(fund.transfer(msg.sender, minted), "failed to send back gyro");
         return minted;
     }
+
+    function getSupportedTokens() external view returns (address[] memory) {
+        return externalTokensRouter.allTokens();
+    }
 }

@@ -12,6 +12,9 @@ import "./Ownable.sol";
 import "./abdk/ABDKMath64x64.sol";
 
 interface GyroFund is IERC20 {
+    event Mint(address minter, uint256 amount);
+    event Redeem(address redeemer, uint256 amount);
+
     function mint(
         address[] memory _tokensIn,
         uint256[] memory _amountsIn,
@@ -439,6 +442,8 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                 IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
             require(success, "failed to transfer tokens");
         }
+
+        emit Redeem(msg.sender, _gyroAmountBurned);
 
         return amountsOut;
     }
