@@ -21,7 +21,7 @@ yarn link
 Start a node
 
 ```
-yarn node
+yarn run-node
 ```
 
 This will print the accounts, including their private keys.
