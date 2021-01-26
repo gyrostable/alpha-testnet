@@ -34,7 +34,7 @@ interface GyroFund is IERC20 {
     function checkPortfolioWeights(address _tokenIn, uint256 _amountIn) external returns (bool);
 }
 
-abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
+contract GyroFundV1 is Ownable, ERC20 {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
@@ -67,6 +67,15 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     address[] underlyingTokenAddresses;
 
     uint256 portfolioWeightEpsilon;
+
+    address[6] addressBook =[
+
+
+
+
+    ]
+
+
 
     constructor(
         uint256 _portfolioWeightEpsilon,
@@ -246,7 +255,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
-    ) public override returns (uint256 amountToMint) {
+    ) public returns (uint256 amountToMint) {
         require(
             _BPTokensIn.length == _amountsIn.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -425,7 +434,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _gyroAmountBurned,
         address[] memory _tokensOut,
         uint256[] memory _minAmountsOut
-    ) public override returns (uint256[] memory) {
+    ) public returns (uint256[] memory) {
         require(
             _tokensOut.length == _minAmountsOut.length,
             "_tokensOut and _minValuesOut should have the same number of elements"
@@ -443,7 +452,7 @@ abstract contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             require(success, "failed to transfer tokens");
         }
 
-        emit Redeem(msg.sender, _gyroAmountBurned);
+        // emit Redeem(msg.sender, _gyroAmountBurned);
 
         return amountsOut;
     }
