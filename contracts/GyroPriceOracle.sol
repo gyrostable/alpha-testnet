@@ -23,11 +23,10 @@ interface GyroPriceOracle {
         view
         returns (uint256[] memory _amountsOut);
 
-
-    // function getBptPrice(
-    //     address _bPoolAddress,
-    //      mapping(address => uint256) memory _underlyingPrices
-    // ) external view returns  (uint256 _bptPrice);
+    function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
+        external
+        view
+        returns (uint64 _bptPrice);
 }
 
 contract DummyGyroPriceOracle is GyroPriceOracle {
@@ -61,10 +60,12 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
         return amounts;
     }
 
-    function getBPTPrice(
-        address _bPoolAddress,
-        uint256[] memory _underlyingPrices
-    ) public view returns (uint64 _bptPrice) {
+    function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
+        public
+        view
+        override
+        returns (uint64 _bptPrice)
+    {
         /* calculations:
             bptSupply = # of BPT tokens
             bPoolWeights = array of pool weights (require _underlyingPrices comes in same order)
