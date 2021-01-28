@@ -6,11 +6,13 @@ import GyroFundArtifact from "../artifacts/contracts/GyroFund.sol/GyroFundV1.jso
 import BalancerExternalTokenRouterArtifact from "../artifacts/contracts/BalancerGyroRouter.sol/BalancerExternalTokenRouter.json";
 import { BalancerExternalTokenRouter } from "../typechain/BalancerExternalTokenRouter";
 import { ERC20 } from "../typechain/ERC20";
+import { GyroFundV1__factory as GyroFundV1Factory } from "../typechain/factories/GyroFundV1__factory"
 import { BalancerExternalTokenRouter__factory as BalancerExternalTokenRouterFactory } from "../typechain/factories/BalancerExternalTokenRouter__factory";
 import { ERC20__factory as ERC20Factory } from "../typechain/factories/ERC20__factory";
 import { expect } from "./chai";
 import { GyroFund } from "../typechain/GyroFund";
 import { utils, BigNumber, BigNumberish } from "ethers";
+import { GyroFundV1 } from "../typechain/GyroFundV1";
 
 
 describe("GyroFund", function () {
@@ -18,22 +20,21 @@ describe("GyroFund", function () {
   let router: BalancerExternalTokenRouter;
   let mockPools: MockContract[];
   let tokens: ERC20[];
-  let gyroFund: GyroFund;
-  let mockOracle: MockContract;
+  let gyroFund: GyroFundV1;
 
   const initialPoolWeights = [1, 1];
 
   //weth/dai and usdc/weth (actual pool addresses on mainnet)
   const gyroPoolAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
 
-  const oracleAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
+  const oracleAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
 
   const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
   const dai = '0x6b175474e89094c44da98b954eedeac495271d0f';
   const usdc = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
   const underlyingTokens = [weth, dai, usdc];
-  const underlyingTokenSymbols = ['WETH', 'DAI', 'USDC'];
+  const underlyingTokenSymbols = ['WETH', 'DAI', 'USDC'].map(symbol => utils.formatBytes32String(symbol));
   const stablecoinAddresses = ['0x6b175474e89094c44da98b954eedeac495271d0f', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'];
 
   const scaling = BigNumber.from(10).pow(18);
@@ -72,36 +73,28 @@ describe("GyroFund", function () {
       new ERC20Factory(wallet).deploy("token2", "TOK2"),
       new ERC20Factory(wallet).deploy("token3", "TOK3"),
     ]);
+    router = await new BalancerExternalTokenRouterFactory(wallet).deploy();
 
-    gyroFund = (await deployContract(wallet, GyroFundArtifact, [
-        portfolioWeightEpsilon,
-        initialPoolWeights,
-        gyroPoolAddresses,
-        '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a',
-        '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a',
-        underlyingTokens,
-        oracleAddresses,
-        underlyingTokenSymbols,
-        stablecoinAddresses]
-      )) as GyroFund;
+    await router.initializeOwner();
+    gyroFund = await new GyroFundV1Factory(wallet).deploy(
+      portfolioWeightEpsilon,
+      initialPoolWeights,
+      gyroPoolAddresses,
+      '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a',
+      '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a',
+      underlyingTokens,
+      oracleAddresses,
+      underlyingTokenSymbols,
+      stablecoinAddresses
+    )
 
   });
 
-  describe("checkStablecoinHealth", () => {
-
-    const stablecoinprices = [scale(100), scale(200)];
-    function checkStablecoinHealth() {
-      return gyroFund.checkStablecoinHealth(
-        stablecoinprices,
-        stablecoinAddresses,
-      );
-    }
-
-    it("should fail if a stablecoin is not healthy", async () => {
-        expect(checkStablecoinHealth()).to.equal(false);
+  describe("checkStablecoinHealthy", function () {
+    it("should check that only stablecoins near the peg are accepted", async function () {
+      const stablecoinhealth = await gyroFund.checkStablecoinHealth(1.06e18, '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a');
+      expect(stablecoinhealth).to.equal(false);
 
     });
-
-});
-
+  });
 });
