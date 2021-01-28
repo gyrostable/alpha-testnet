@@ -40,6 +40,26 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         return (_bpAddresses, _bpAmounts);
     }
 
+    function estimateDeposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        view
+        returns (address[] memory, uint256[] memory)
+    {
+        address[] memory _bpAddresses = new address[](_tokensIn.length);
+        uint256[] memory _bpAmounts = new uint256[](_amountsIn.length);
+
+        for (uint256 i = 0; i < _tokensIn.length; i++) {
+            address token = _tokensIn[i];
+            uint256 amount = _amountsIn[i];
+
+            BPool pool = BPool(choosePoolToDeposit(token, amount));
+            uint256 poolAmountOut = calcPoolOutGivenSingleIn(pool, token, amount);
+            _bpAddresses[i] = address(pool);
+            _bpAmounts[i] = poolAmountOut;
+        }
+        return (_bpAddresses, _bpAmounts);
+    }
+
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
         external
         override
@@ -60,6 +80,27 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             require(success, "failed to transfer token to GyroFund");
         }
         return (_tokensOut, _amountsOut);
+    }
+
+    function calcPoolOutGivenSingleIn(
+        BPool pool,
+        address _token,
+        uint256 _amount
+    ) internal view returns (uint256) {
+        uint256 tokenBalanceIn = pool.getBalance(_token);
+        uint256 tokenWeightIn = pool.getDenormalizedWeight(_token);
+        uint256 poolSupply = pool.totalSupply();
+        uint256 totalWeight = pool.getTotalDenormalizedWeight();
+        uint256 swapFee = pool.getSwapFee();
+        return
+            pool.calcPoolOutGivenSingleIn(
+                tokenBalanceIn,
+                tokenWeightIn,
+                poolSupply,
+                totalWeight,
+                _amount,
+                swapFee
+            );
     }
 
     function calcPoolInGivenSingleOut(

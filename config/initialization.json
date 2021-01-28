@@ -33,6 +33,14 @@
       "swap_fee": 1000
     },
     {
+      "name": "usdc_weth",
+      "assets": [
+        { "symbol": "USDC", "amount": 50000, "weight": 5 },
+        { "symbol": "WETH", "amount": 50000, "weight": 5 }
+      ],
+      "swap_fee": 1000
+    },
+    {
       "name": "weth_dai",
       "assets": [
         { "symbol": "WETH", "amount": 50000, "weight": 5 },

@@ -34,6 +34,16 @@ contract GyroLib {
         return minted;
     }
 
+    function estimateUnderlyingTokens(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        public
+        view
+        returns (uint256)
+    {
+        (address[] memory bptTokens, uint256[] memory amounts) =
+            externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
+        return fund.estimateMint(bptTokens, amounts);
+    }
+
     function getSupportedTokens() external view returns (address[] memory) {
         return externalTokensRouter.allTokens();
     }

@@ -2,7 +2,6 @@
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -12,6 +11,7 @@ import "./compound/ComptrollerInterface.sol";
 import "./Keeper.sol";
 import "./Exponential.sol";
 import "./CompoundCore.sol";
+import "./Ownable.sol";
 import "./compound/UniswapAnchoredView.sol";
 
 contract CDaiVault is CompoundCore, Ownable, ERC20 {
@@ -37,11 +37,7 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         address _cdaiAddress,
         address _comptrollerAddress,
         address _compUniswapAnchorAddress
-    )
-        ERC20("Vault DAI", "vDAI")
-        Ownable()
-        CompoundCore(_cdaiAddress, _comptrollerAddress)
-    {
+    ) ERC20("Vault DAI", "vDAI") CompoundCore(_cdaiAddress, _comptrollerAddress) {
         intendedBorrowRatio.minimum = 0.95e18;
         intendedBorrowRatio.target = 0.97e18;
         intendedBorrowRatio.maximum = 0.99e18;
@@ -144,10 +140,7 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
 
         // NOTE: this value does not take into account potential COMP held
         vars.nav = nav(vars.cdaiHeld, vars.daiOwed, vars.daiCdaiExchangeRate);
-        vars.cdaiToWithdraw = mustDivExp(
-            mustMulExp(vars.nav, _sharesToRedeem),
-            totalSupply()
-        );
+        vars.cdaiToWithdraw = mustDivExp(mustMulExp(vars.nav, _sharesToRedeem), totalSupply());
         _burn(msg.sender, _sharesToRedeem);
 
         BorrowRatio memory _intendedBorrowRatio = intendedBorrowRatio;
@@ -167,21 +160,18 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
             (expScale +
                 mustMulExp(
                     vars.percentShares,
-                    expScale -
-                        mustMulExp(
-                            _intendedBorrowRatio.target,
-                            vars.collateralFactor
-                        )
+                    expScale - mustMulExp(_intendedBorrowRatio.target, vars.collateralFactor)
                 ))
         );
 
         //Units: [0,1]
-        uint256 _borrowRatio = computeBorrowRatio(
-            vars.cdaiHeld,
-            vars.daiOwed,
-            vars.daiCdaiExchangeRate,
-            vars.collateralFactor
-        );
+        uint256 _borrowRatio =
+            computeBorrowRatio(
+                vars.cdaiHeld,
+                vars.daiOwed,
+                vars.daiCdaiExchangeRate,
+                vars.collateralFactor
+            );
 
         //Units: [0,1]
         uint256 _slack = 0;
@@ -190,23 +180,14 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         }
 
         //Units: cdai tokens (e.g., 1000)
-        uint256 _cdaiSlack = mustMulExp3(
-            _slack,
-            vars.collateralFactor,
-            vars.cdaiHeld
-        );
+        uint256 _cdaiSlack = mustMulExp3(_slack, vars.collateralFactor, vars.cdaiHeld);
 
-        uint256 compPriceInDai = mustDivExp(
-            uniswapanchor.price("COMP"),
-            uniswapanchor.price("DAI")
-        );
+        uint256 compPriceInDai =
+            mustDivExp(uniswapanchor.price("COMP"), uniswapanchor.price("DAI"));
 
         // COMP->Dai price * COMP held * (1-slippage factor)
-        uint256 _compDaiValue = mustMulExp3(
-            comp.balanceOf(msg.sender),
-            compPriceInDai,
-            slippageRatio
-        );
+        uint256 _compDaiValue =
+            mustMulExp3(comp.balanceOf(msg.sender), compPriceInDai, slippageRatio);
 
         if (_cdaiSlack < vars.cdaiToWithdraw) {
             require(
@@ -227,10 +208,7 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
 
         // check NAV
         //old NAV/share = _nav / (totalsupply() + sharesToRedeem)
-        uint256 oldNavPerShare = mustDivExp(
-            vars.nav,
-            (totalSupply().add(_sharesToRedeem))
-        );
+        uint256 oldNavPerShare = mustDivExp(vars.nav, (totalSupply().add(_sharesToRedeem)));
 
         (
             vars.err,
@@ -241,13 +219,10 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         require(vars.err == 0, "rebalance: getAccountSnapshot failed");
 
         // check old NAV/share - new NAV/share increases by at least _compDaiValue/totalsupply()
-        uint256 newNavPerShare = mustDivExp(
-            nav(vars.cdaiHeld, vars.daiOwed, vars.daiCdaiExchangeRate),
-            totalSupply()
-        );
+        uint256 newNavPerShare =
+            mustDivExp(nav(vars.cdaiHeld, vars.daiOwed, vars.daiCdaiExchangeRate), totalSupply());
         require(
-            newNavPerShare.sub(oldNavPerShare) >
-                mustDivExp(_compDaiValue, totalSupply()),
+            newNavPerShare.sub(oldNavPerShare) > mustDivExp(_compDaiValue, totalSupply()),
             "Keeper returned insufficient NAV/share."
         );
 
@@ -259,21 +234,17 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
             vars.daiCdaiExchangeRate,
             vars.collateralFactor
         );
-        uint256 _scaledTargetBorrowRatio = mustMulExp(
-            vars.scalingFactor,
-            intendedBorrowRatio.target
-        );
+        uint256 _scaledTargetBorrowRatio =
+            mustMulExp(vars.scalingFactor, intendedBorrowRatio.target);
         // check currentBorrowRatio (pre-withdraw) within epsilon of scalingFactor * indendedBorrowRatio.target
         if (_borrowRatio > _scaledTargetBorrowRatio) {
             require(
-                _borrowRatio - _scaledTargetBorrowRatio <
-                    intendedBorrowRatio.epsilon,
+                _borrowRatio - _scaledTargetBorrowRatio < intendedBorrowRatio.epsilon,
                 "Keeper returned insufficient borrow ratio."
             );
         } else {
             require(
-                _scaledTargetBorrowRatio - _borrowRatio <
-                    intendedBorrowRatio.epsilon,
+                _scaledTargetBorrowRatio - _borrowRatio < intendedBorrowRatio.epsilon,
                 "Keeper returned insufficient borrow ratio."
             );
         }
@@ -304,19 +275,16 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         uint256 _collateralFactor = getCdaiCollateralFactor();
 
         //Units: [0,1]
-        uint256 _borrowRatio = computeBorrowRatio(
-            _cdaiHeld,
-            _daiOwed,
-            _daiCdaiExchangeRate,
-            _collateralFactor
-        );
+        uint256 _borrowRatio =
+            computeBorrowRatio(_cdaiHeld, _daiOwed, _daiCdaiExchangeRate, _collateralFactor);
 
         // COMP->Dai price * COMP held * (1-slippage factor)
-        uint256 _compDaiValue = mustMulExp3(
-            comp.balanceOf(msg.sender),
-            mustDivExp(uniswapanchor.price("COMP"), uniswapanchor.price("DAI")), // comp price in DAI
-            slippageRatio
-        );
+        uint256 _compDaiValue =
+            mustMulExp3(
+                comp.balanceOf(msg.sender),
+                mustDivExp(uniswapanchor.price("COMP"), uniswapanchor.price("DAI")), // comp price in DAI
+                slippageRatio
+            );
 
         // TODO: check if this reverts automatically or not
         // TO-REMEBER: This could be optimized in the future by potentially passing more arguments
@@ -341,13 +309,10 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         require(_oErr == 0, "rebalance: getAccountSnapshot failed");
 
         // check old NAV/share - new NAV/share increases by at least _compDaiValue/totalsupply()
-        uint256 newNavPerShare = mustDivExp(
-            nav(_cdaiHeld, _daiOwed, _daiCdaiExchangeRate),
-            totalSupply()
-        );
+        uint256 newNavPerShare =
+            mustDivExp(nav(_cdaiHeld, _daiOwed, _daiCdaiExchangeRate), totalSupply());
         require(
-            newNavPerShare.sub(oldNavPerShare) >
-                mustDivExp(_compDaiValue, totalSupply()),
+            newNavPerShare.sub(oldNavPerShare) > mustDivExp(_compDaiValue, totalSupply()),
             "Keeper returned insufficient NAV/share."
         );
 
@@ -361,14 +326,12 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         );
         if (_borrowRatio > _intendedBorrowRatio.target) {
             require(
-                _borrowRatio - _intendedBorrowRatio.target <
-                    intendedBorrowRatio.epsilon,
+                _borrowRatio - _intendedBorrowRatio.target < intendedBorrowRatio.epsilon,
                 "Keeper returned insufficient borrow ratio."
             );
         } else {
             require(
-                _intendedBorrowRatio.target - _borrowRatio <
-                    intendedBorrowRatio.epsilon,
+                _intendedBorrowRatio.target - _borrowRatio < intendedBorrowRatio.epsilon,
                 "Keeper returned insufficient borrow ratio."
             );
         }

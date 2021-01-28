@@ -2,11 +2,11 @@
 pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./Ownable.sol";
 import "./compound/CTokenInterfaces.sol";
 import "./compound/ComptrollerInterface.sol";
 import "./BPTKeeper.sol";
@@ -37,7 +37,7 @@ contract BPTFund is Ownable, ERC20, Exponential {
         address _balancerPoolAddress,
         address _balAddress,
         address _wethAddress
-    ) ERC20("Fund BPT", "gBPT") Ownable() {
+    ) ERC20("Fund BPT", "gBPT") {
         balancerPool = BPool(_balancerPoolAddress);
         balAddress = _balAddress;
         wethAddress = _wethAddress;
@@ -62,7 +62,7 @@ contract BPTFund is Ownable, ERC20, Exponential {
     }
 
     function transferToSender(uint256 _amount) internal returns (bool _success) {
-        _success =  balancerPool.transfer(msg.sender, _amount);
+        _success = balancerPool.transfer(msg.sender, _amount);
         return _success;
     }
 
@@ -103,10 +103,7 @@ contract BPTFund is Ownable, ERC20, Exponential {
      */
     function withdraw(uint256 _sharesToRedeem, address) public {
         uint256 _nav = nav();
-        uint256 _amountToWithdraw = mustDivExp(
-            mustMulExp(_nav, _sharesToRedeem),
-            totalSupply()
-        );
+        uint256 _amountToWithdraw = mustDivExp(mustMulExp(_nav, _sharesToRedeem), totalSupply());
         _burn(msg.sender, _sharesToRedeem);
         transferToSender(_amountToWithdraw);
     }
@@ -115,10 +112,13 @@ contract BPTFund is Ownable, ERC20, Exponential {
         revert("fallback function should not be called");
     }
 
-    function getPrice()//address _baseAddress, address _quoteAddress)
+    function getPrice()
         public
         pure
-        returns (uint256)
+        returns (
+            //address _baseAddress, address _quoteAddress)
+            uint256
+        )
     {
         return 1;
     }
@@ -130,33 +130,27 @@ contract BPTFund is Ownable, ERC20, Exponential {
 
         uint256 _balBalance = balancerPool.balanceOf(msg.sender);
 
-        uint256 _wethAmount = mustDivExp(
-            _balBalance,
-            getPrice()//(wethAddress, balAddress)
-        );
+        uint256 _wethAmount =
+            mustDivExp(
+                _balBalance,
+                getPrice() //(wethAddress, balAddress)
+            );
 
         address[] memory _tokens = balancerPool.getFinalTokens();
-        uint256 _weight = balancerPool.getNormalizedWeight(
-            _tokens[_highestVolumeTokenIndex]
-        );
+        uint256 _weight = balancerPool.getNormalizedWeight(_tokens[_highestVolumeTokenIndex]);
 
-        uint256 _outAmount = mustMulExp3(
-            getPrice(), //(wethAddress, _tokens[0]), // TODO: double-check base/quote order
-            _wethAmount,
-            _weight
-        );
+        uint256 _outAmount =
+            mustMulExp3(
+                getPrice(), //(wethAddress, _tokens[0]), // TODO: double-check base/quote order
+                _wethAmount,
+                _weight
+            );
 
         // TODO: make the slippage ratio dependent on the amount of BAL to sell
         uint256 _poolSupply = balancerPool.totalSupply();
-        uint256 _firstAssetBalance = balancerPool.getBalance(
-            _tokens[_highestVolumeTokenIndex]
-        );
+        uint256 _firstAssetBalance = balancerPool.getBalance(_tokens[_highestVolumeTokenIndex]);
         uint256 _supplyRatio = mustDivExp(_outAmount, _firstAssetBalance);
-        uint256 _targetAmountOut = mustMulExp3(
-            _supplyRatio,
-            _poolSupply,
-            expScale - slippageRatio
-        );
+        uint256 _targetAmountOut = mustMulExp3(_supplyRatio, _poolSupply, expScale - slippageRatio);
         uint256 _currentBalance = balancerPool.balanceOf(address(this));
         BPTKeeper(_keeperAddress).rebalance();
         uint256 _newBalance = balancerPool.balanceOf(address(this));

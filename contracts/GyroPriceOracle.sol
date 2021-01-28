@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ExtendedMath.sol";
 
 interface PriceOracle {
-    function getPrice(address token, bytes32 tokenSymbol) external returns (uint256);
+    function getPrice(string memory tokenSymbol) external returns (uint256);
 }
 
 interface GyroPriceOracle {
@@ -19,10 +19,7 @@ interface GyroPriceOracle {
         view
         returns (uint256);
 
-    function getAmountToRedeem(uint256 _dollarValueOut)
-        external
-        view
-        returns (uint256 _gyroAmount);
+    function getAmountToRedeem(uint256 _dollarValueOut) external view returns (uint256 _gyroAmount);
 
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
         external
@@ -30,7 +27,7 @@ interface GyroPriceOracle {
         returns (uint64 _bptPrice);
 }
 
-contract DummyGyroPriceOracle is GyroPriceOracle {
+contract GyroPriceOracleV1 is GyroPriceOracle {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
@@ -98,7 +95,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
     }
 }
 
-abstract contract CompoundPriceWrapper is PriceOracle {
+contract CompoundPriceWrapper is PriceOracle {
     address compoundOracle;
     UniswapAnchoredView private uniswapanchor;
 
@@ -106,9 +103,23 @@ abstract contract CompoundPriceWrapper is PriceOracle {
         compoundOracle = _compoundOracle;
     }
 
-    function getPrice(string memory tokenSymbol) public returns (uint256) {
+    function getPrice(string memory tokenSymbol) public override returns (uint256) {
         uniswapanchor = UniswapAnchoredView(compoundOracle);
         return uniswapanchor.price(tokenSymbol);
+    }
+}
+
+contract DummyPriceWrapper is PriceOracle {
+    function getPrice(string memory tokenSymbol) public pure override returns (uint256) {
+        if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("DAI"))) {
+            return 1e18;
+        } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("USDC"))) {
+            return 1e18;
+        } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("WETH"))) {
+            return 1350e18;
+        } else {
+            revert("symbol not supported");
+        }
     }
 }
 
