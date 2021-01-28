@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
 import "./compound/UniswapAnchoredView.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./ExtendedMath.sol";
 
@@ -33,6 +34,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
+    using SafeMath for uint256;
 
     function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
         external
@@ -42,7 +44,7 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
     {
         uint256 result = 0;
         for (uint256 i = 0; i < _tokensIn.length; i++) {
-            result += _amountsIn[i];
+            result = result.add(_amountsIn[i]);
         }
         return result;
     }

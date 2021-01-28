@@ -69,6 +69,13 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256[] _hypotheticalWeights;
     }
 
+    struct FlowLogger {
+        uint256 _inflowHistory;
+        uint256 _outflowHistory;
+        uint256 _currentBlock;
+        uint256 _lastSeenBlock;
+    }
+
     PoolProperties[] public poolProperties;
 
 
@@ -80,6 +87,10 @@ contract GyroFundV1 is Ownable, ERC20 {
     address[] underlyingTokenAddresses;
 
     uint256 portfolioWeightEpsilon;
+    uint256 lastSeenBlock;
+    uint256 inflowHistory;
+    uint256 outflowHistory;
+    uint256 memoryParam;
 
     constructor(
         uint256 _portfolioWeightEpsilon,
@@ -90,10 +101,16 @@ contract GyroFundV1 is Ownable, ERC20 {
         address[] memory _underlyingTokenAddresses,
         address[] memory _underlyingTokenOracleAddresses,
         bytes32[] memory _underlyingTokenSymbols,
-        address[] memory _stablecoinAddresses
+        address[] memory _stablecoinAddresses,
+        uint256 _memoryParam
     ) ERC20("Gyro Stable Coin", "GYRO") {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
+        
+        lastSeenBlock = block.number;
+        inflowHistory = 0;
+        outflowHistory = 0;
+        memoryParam = _memoryParam;
 
         underlyingTokenAddresses = _underlyingTokenAddresses;
 
@@ -192,7 +209,7 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
-            _totalPortfolioValue += _BPTAmounts[i].mul(_BPTPrices[i]);
+            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].mul(_BPTPrices[i]));
         }
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
@@ -593,37 +610,44 @@ contract GyroFundV1 is Ownable, ERC20 {
                                   weights._currentWeights);
 
 
-        if (_launch) {
-            amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
-
-            require(amountToMint >= _minGyroMinted, "too much slippage");
-
-            for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-                bool success =
-                    IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
-                require(success, "failed to transfer tokens, check allowance");
-            }
-
-            _mint(msg.sender, amountToMint);
-
-            return amountToMint;
+        if (!_launch) {
+            revert("Too windy for launch");
         }
+
+        FlowLogger memory flowLogger;
+        (flowLogger._inflowHistory, flowLogger._outflowHistory, flowLogger._currentBlock, flowLogger._lastSeenBlock) = initializeFlowLogger();
+
+        amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
+
+        require(amountToMint >= _minGyroMinted, "too much slippage");
+
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            bool success =
+                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
+            require(success, "failed to transfer tokens, check allowance");
+        }
+
+        _mint(msg.sender, amountToMint);
+
+        finalizeFlowLogger(flowLogger._inflowHistory, flowLogger._outflowHistory, amountToMint, 0, flowLogger._currentBlock, flowLogger._lastSeenBlock);
+
+        return amountToMint;
+        
     }
 
     function redeem(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
         uint256 _maxGyroRedeemed
-    ) public returns (uint256 gyroRedeemed) {
+    ) public returns (uint256 _gyroRedeemed) {
         require(
             _BPTokensOut.length == _amountsOut.length,
             "tokensIn and valuesIn should have the same number of elements"
         );
 
         //Filter 1: Require that the tokens are supported and in correct order
-        bool _orderCorrect = checkBPTokenOrder(_BPTokensOut);
         require(
-            _orderCorrect,
+            checkBPTokenOrder(_BPTokensOut),
             "Input tokens in wrong order or contains invalid tokens"
         );
 
@@ -632,39 +656,73 @@ contract GyroFundV1 is Ownable, ERC20 {
             _zeroArray[i] = 0;
         }
 
+        Weights memory weights;
+
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
 
         uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
 
-        (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
+        (weights._idealWeights, weights._currentWeights, weights._hypotheticalWeights) 
+                = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
 
-        bool _launch = safeToRedeem(_BPTokensOut, _hypotheticalWeights, _idealWeights, _currentWeights);
+        bool _launch = safeToRedeem(_BPTokensOut, weights._hypotheticalWeights, weights._idealWeights, weights._currentWeights);
 
-        if (_launch) {
-            uint256 _dollarValueOut = 0;
-            for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-                _dollarValueOut += _amountsOut[i].mul(_currentBPTPrices[i]);
-            }
-
-            uint256 _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut);
+        if (! _launch) {
+            revert("Too windy for launch.");
         }
 
+        uint256 _dollarValueOut = 0;
 
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].mul(_currentBPTPrices[i]));
+        }
 
-        // _burn(msg.sender, _gyroAmountBurned);
-        // uint256[] memory amountsOut =
-        //     gyroPriceOracle.getAmountsToPayback(_gyroAmountBurned, _tokensOut);
-        // gyroRouter.withdraw(_tokensOut, amountsOut);
+        FlowLogger memory flowLogger;
+        (flowLogger._inflowHistory, flowLogger._outflowHistory, flowLogger._currentBlock, flowLogger._lastSeenBlock) = initializeFlowLogger();
 
-        // for (uint256 i = 0; i < _tokensOut.length; i++) {
-        //     require(amountsOut[i] >= _minAmountsOut[i], "too much slippage");
-        //     bool success =
-        //         IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
-        //     require(success, "failed to transfer tokens");
-        // }
+        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut);
 
-        // emit Redeem(msg.sender, _gyroAmountBurned);
+        _burn(msg.sender, _gyroRedeemed);
 
-        // return amountsOut;
+        gyroRouter.withdraw(_BPTokensOut, _amountsOut);
+
+        for (uint256 i = 0; i < _amountsOut.length; i++) {
+            require(_gyroRedeemed <= _maxGyroRedeemed, "too much slippage");
+            bool success =
+                IERC20(_amountsOut[i]).transferFrom(address(gyroRouter), msg.sender, _amountsOut[i]);
+            require(success, "failed to transfer tokens");
+        }
+
+        // emit Redeem(msg.sender, _gyroRedeemed);
+        finalizeFlowLogger(flowLogger._inflowHistory, flowLogger._outflowHistory, 0, _gyroRedeemed, flowLogger._currentBlock, flowLogger._lastSeenBlock);
+        return _gyroRedeemed;
+    }
+
+    function initializeFlowLogger() public view returns (uint256 _inflowHistory, uint256 _outflowHistory, uint256 _currentBlock, uint256 _lastSeenBlock) {
+        _lastSeenBlock = lastSeenBlock;
+        _currentBlock = block.number;
+        _inflowHistory = inflowHistory;
+        _outflowHistory = outflowHistory;
+        
+        uint256 _memoryParam = memoryParam;
+
+        if ( _lastSeenBlock < _currentBlock) {
+                _inflowHistory = _inflowHistory.mul(_memoryParam**(_currentBlock.sub(_lastSeenBlock)));
+                _outflowHistory = _outflowHistory.mul(_memoryParam**(_currentBlock.sub(_lastSeenBlock)));
+        }
+
+        return (_inflowHistory, _outflowHistory, _currentBlock, _lastSeenBlock);
+    }
+
+    function finalizeFlowLogger(uint256 _inflowHistory, uint256 _outflowHistory, uint256 _gyroMinted, uint256 _gyroRedeemed, uint256 _currentBlock, uint256 _lastSeenBlock) public  {
+        if (_gyroMinted > 0) {
+            inflowHistory = _inflowHistory.add(_gyroMinted);
+        }
+        if (_gyroRedeemed > 0) {
+            outflowHistory = _outflowHistory.add(_gyroRedeemed);
+        }
+        if (_lastSeenBlock < _currentBlock) {
+            lastSeenBlock = _currentBlock;
+        }
     }
 }
