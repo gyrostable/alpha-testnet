@@ -296,9 +296,9 @@ contract GyroFundV1 is Ownable, ERC20 {
                 poolProperties[i].poolAddress,
                 _bPoolUnderlyingTokenPrices
             );
-
-            return _currentBPTPrices;
         }
+        
+        return _currentBPTPrices;
     }
 
     function poolHealthHelper(uint256[] memory _allUnderlyingPrices, 
