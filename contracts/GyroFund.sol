@@ -44,7 +44,7 @@ contract GyroFundV1 is Ownable, ERC20 {
     GyroRouter gyroRouter;
     PriceOracle priceOracle;
 
-    struct tokenProperties {
+    struct TokenProperties {
         address oracleAddress;
         bytes32 tokenSymbol;
         uint16 tokenIndex;
@@ -58,7 +58,7 @@ contract GyroFundV1 is Ownable, ERC20 {
 
     PoolProperties[] public poolProperties;
 
-    mapping(address => tokenProperties) _tokenAddressToProperties;
+    mapping(address => TokenProperties) _tokenAddressToProperties;
     mapping(address => bool) _checkPoolIsValid;
     mapping(address => bool) _checkIsStablecoin;
 
@@ -98,11 +98,12 @@ contract GyroFundV1 is Ownable, ERC20 {
         }
 
         for (uint256 i = 0; i < _underlyingTokenAddresses.length; i++) {
-            _tokenAddressToProperties[_underlyingTokenAddresses[i]]
-                .oracleAddress = _underlyingTokenOracleAddresses[i];
-            _tokenAddressToProperties[_underlyingTokenAddresses[i]]
-                .tokenSymbol = _underlyingTokenSymbols[i];
-            _tokenAddressToProperties[_underlyingTokenAddresses[i]].tokenIndex = uint16(i);
+            
+            TokenProperties storage tokenProps;
+            tokenProps.oracleAddress = _underlyingTokenOracleAddresses[i];
+            tokenProps.tokenSymbol = _underlyingTokenSymbols[i];
+            tokenProps.tokenIndex = uint16(i);
+            _tokenAddressToProperties[_underlyingTokenAddresses[i]] = (tokenProps);
         }
 
         // Calculate BPT prices for all pools
@@ -230,7 +231,8 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256[] memory _allUnderlyingPrices;
 
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
-            _allUnderlyingPrices[i] = getPrice(
+            _allUnderlyingPrices[i] = 
+            getPrice(
                 underlyingTokenAddresses[i],
                 _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol
             );
