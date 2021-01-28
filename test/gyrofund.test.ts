@@ -27,11 +27,11 @@ describe("GyroFund", function () {
   //weth/dai and usdc/weth (actual pool addresses on mainnet)
   const gyroPoolAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
 
-  const oracleAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
+  const oracleAddresses = ['0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf', '0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf'];
 
   const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
   const dai = '0x6b175474e89094c44da98b954eedeac495271d0f';
-  // const usdc = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+  const usdc = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
   const underlyingTokens = [weth, dai, usdc];
   const underlyingTokenSymbols = ['WETH', 'DAI', 'USDC'].map(symbol => utils.formatBytes32String(symbol));
