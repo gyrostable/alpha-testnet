@@ -56,7 +56,7 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256 initialPoolPrice;
     }
 
-    PoolProperties[] poolProperties;
+    PoolProperties[] public poolProperties;
 
     mapping(address => tokenProperties) _tokenAddressToProperties;
     mapping(address => bool) _checkPoolIsValid;
@@ -91,7 +91,7 @@ contract GyroFundV1 is Ownable, ERC20 {
             _checkPoolIsValid[_gyroPoolAddresses[i]] = true;
         }
 
-        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
+        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) { 
             poolProperties[i].poolAddress = _gyroPoolAddresses[i];
             poolProperties[i].initialPoolWeight = _initialPoolWeights[i];
         }
