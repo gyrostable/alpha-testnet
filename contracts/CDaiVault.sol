@@ -38,7 +38,6 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         address _comptrollerAddress,
         address _compUniswapAnchorAddress
     )
-        public
         ERC20("Vault DAI", "vDAI")
         Ownable()
         CompoundCore(_cdaiAddress, _comptrollerAddress)
@@ -375,5 +374,3 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         }
     }
 }
-
-//TO-DO: Create tests for everything
