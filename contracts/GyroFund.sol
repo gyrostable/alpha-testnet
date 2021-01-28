@@ -68,7 +68,6 @@ contract GyroFundV1 is Ownable, ERC20 {
 
     uint256 portfolioWeightEpsilon;
 
-
     constructor(
         uint256 _portfolioWeightEpsilon,
         uint256[] memory _initialPoolWeights,
@@ -91,9 +90,11 @@ contract GyroFundV1 is Ownable, ERC20 {
             _checkPoolIsValid[_gyroPoolAddresses[i]] = true;
         }
 
-        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) { 
-            poolProperties[i].poolAddress = _gyroPoolAddresses[i];
-            poolProperties[i].initialPoolWeight = _initialPoolWeights[i];
+        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
+            PoolProperties storage poolProps;
+            poolProps.poolAddress = _gyroPoolAddresses[i];
+            poolProps.initialPoolWeight = _initialPoolWeights[i];
+            poolProperties.push(poolProps);
         }
 
         for (uint256 i = 0; i < _underlyingTokenAddresses.length; i++) {
@@ -241,8 +242,11 @@ contract GyroFundV1 is Ownable, ERC20 {
         _tokenAddressToProperties[token].oracleAddress = oracleAddress;
     }
 
-    function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices) public view returns (uint256[] memory _currentBPTPrices) {
-
+    function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices)
+        public
+        view
+        returns (uint256[] memory _currentBPTPrices)
+    {
         // Calculate BPT prices for all pools
         for (uint256 i = 0; i < poolProperties.length; i++) {
             BPool _bPool = BPool(poolProperties[i].poolAddress);
@@ -267,15 +271,15 @@ contract GyroFundV1 is Ownable, ERC20 {
         }
     }
 
-    function poolHealthHelper(uint256[] memory _allUnderlyingPrices, 
-                              uint256 _poolIndex, 
-                              address[] memory _BPTokensIn) 
-                              public view returns(bool[] memory _inputPoolHealth, bool _allPoolsHealthy) {
-
+    function poolHealthHelper(
+        uint256[] memory _allUnderlyingPrices,
+        uint256 _poolIndex,
+        address[] memory _BPTokensIn
+    ) public view returns (bool[] memory _inputPoolHealth, bool _allPoolsHealthy) {
         _inputPoolHealth[_poolIndex] = true;
         BPool _bPool = BPool(poolProperties[_poolIndex].poolAddress);
         address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
-        
+
         //Go through the underlying tokens within the pool
         for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
             if (_checkIsStablecoin[_bPoolUnderlyingTokens[j]]) {
@@ -293,12 +297,20 @@ contract GyroFundV1 is Ownable, ERC20 {
         }
     }
 
-    function checkAllPoolsHealthy(address[] memory _BPTokensIn, 
-                                  uint256[] memory _hypotheticalWeights, 
-                                  uint256[] memory _idealWeights, 
-                                  uint256[] memory _allUnderlyingPrices) 
-                                  public view returns (bool, bool, bool[] memory) {
-
+    function checkAllPoolsHealthy(
+        address[] memory _BPTokensIn,
+        uint256[] memory _hypotheticalWeights,
+        uint256[] memory _idealWeights,
+        uint256[] memory _allUnderlyingPrices
+    )
+        public
+        view
+        returns (
+            bool,
+            bool,
+            bool[] memory
+        )
+    {
         // Check safety of input tokens
         bool _allPoolsWithinEpsilon = true;
         bool[] memory _poolsWithinEpsilon;
@@ -316,20 +328,24 @@ contract GyroFundV1 is Ownable, ERC20 {
                 _poolsWithinEpsilon[i] = false;
             }
 
-            (_inputPoolHealth, _allPoolsHealthy) = poolHealthHelper(_allUnderlyingPrices, i, _BPTokensIn);
-
+            (_inputPoolHealth, _allPoolsHealthy) = poolHealthHelper(
+                _allUnderlyingPrices,
+                i,
+                _BPTokensIn
+            );
         }
 
         return (_allPoolsHealthy, _allPoolsWithinEpsilon, _inputPoolHealth);
     }
 
-    function safeToMintOutsideEpsilon(address[] memory _BPTokensIn, 
-                                        bool[] memory _inputPoolHealth, 
-                                        uint256[] memory _inputBPTWeights, 
-                                        uint256[] memory _idealWeights, 
-                                        uint256[] memory _hypotheticalWeights, 
-                                        uint256[] memory _currentWeights) 
-                                        public pure returns (bool _anyCheckFail) {
+    function safeToMintOutsideEpsilon(
+        address[] memory _BPTokensIn,
+        bool[] memory _inputPoolHealth,
+        uint256[] memory _inputBPTWeights,
+        uint256[] memory _idealWeights,
+        uint256[] memory _hypotheticalWeights,
+        uint256[] memory _currentWeights
+    ) public pure returns (bool _anyCheckFail) {
         //Check that amount above epsilon is decreasing
         //Check that unhealthy pools have input weight below ideal weight
         //If both true, then mint
@@ -361,22 +377,26 @@ contract GyroFundV1 is Ownable, ERC20 {
         if (!_anyCheckFail) {
             return true;
         }
-
     }
 
-    function safeToMint(address[] memory _BPTokensIn, 
-                                  uint256[] memory _hypotheticalWeights, 
-                                  uint256[] memory _idealWeights, 
-                                  uint256[] memory _allUnderlyingPrices,
-                                  uint256[] memory _amountsIn,
-                                  uint256[] memory _currentBPTPrices,
-                                  uint256[] memory _currentWeights)
-                                  public view returns (bool _launch) {
-
-
+    function safeToMint(
+        address[] memory _BPTokensIn,
+        uint256[] memory _hypotheticalWeights,
+        uint256[] memory _idealWeights,
+        uint256[] memory _allUnderlyingPrices,
+        uint256[] memory _amountsIn,
+        uint256[] memory _currentBPTPrices,
+        uint256[] memory _currentWeights
+    ) public view returns (bool _launch) {
         _launch = false;
 
-        (bool _allPoolsHealthy, bool _allPoolsWithinEpsilon, bool[] memory _inputPoolHealth) = checkAllPoolsHealthy(_BPTokensIn, _hypotheticalWeights, _idealWeights, _allUnderlyingPrices);
+        (bool _allPoolsHealthy, bool _allPoolsWithinEpsilon, bool[] memory _inputPoolHealth) =
+            checkAllPoolsHealthy(
+                _BPTokensIn,
+                _hypotheticalWeights,
+                _idealWeights,
+                _allUnderlyingPrices
+            );
 
         // if check 1 succeeds and all pools healthy, then proceed with minting
         if (_allPoolsHealthy) {
@@ -405,23 +425,33 @@ contract GyroFundV1 is Ownable, ERC20 {
             }
             //Outside of the epsilon boundary
             else {
-
-                _launch = safeToMintOutsideEpsilon(_BPTokensIn, 
-                                        _inputPoolHealth, 
-                                        _inputBPTWeights, 
-                                        _idealWeights, 
-                                        _hypotheticalWeights, 
-                                        _currentWeights);
-            }   
+                _launch = safeToMintOutsideEpsilon(
+                    _BPTokensIn,
+                    _inputPoolHealth,
+                    _inputBPTWeights,
+                    _idealWeights,
+                    _hypotheticalWeights,
+                    _currentWeights
+                );
+            }
         }
 
         return _launch;
     }
 
-    function calculateAllWeights(uint256[] memory _currentBPTPrices, 
-                                address[] memory _BPTokensIn, 
-                                uint256[] memory _amountsIn) 
-                                public view returns (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) {
+    function calculateAllWeights(
+        uint256[] memory _currentBPTPrices,
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn
+    )
+        public
+        view
+        returns (
+            uint256[] memory _idealWeights,
+            uint256[] memory _currentWeights,
+            uint256[] memory _hypotheticalWeights
+        )
+    {
         //Calculate the up to date ideal portfolio weights
         _idealWeights = calculateImpliedPoolWeights(_currentBPTPrices);
 
@@ -435,16 +465,12 @@ contract GyroFundV1 is Ownable, ERC20 {
             _BPTNewAmounts[i] = _BPTCurrentAmounts[i] + _amountsIn[i];
         }
 
-        _currentWeights =
-            calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
+        _currentWeights = calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
 
-        _hypotheticalWeights =
-            calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
+        _hypotheticalWeights = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
         return (_idealWeights, _currentWeights, _hypotheticalWeights);
-
     }
-
 
     //_amountsIn in should have a zero index if nothing has been submitted for a particular token
     // _BPTokensIn and _amountsIn should have same indexes as poolProperties
@@ -467,15 +493,22 @@ contract GyroFundV1 is Ownable, ERC20 {
 
         uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
 
-        (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn);
+        (
+            uint256[] memory _idealWeights,
+            uint256[] memory _currentWeights,
+            uint256[] memory _hypotheticalWeights
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn);
 
-        bool _launch = safeToMint(_BPTokensIn, 
-                                  _hypotheticalWeights, 
-                                  _idealWeights, 
-                                  _allUnderlyingPrices,
-                                  _amountsIn,
-                                  _currentBPTPrices,
-                                  _currentWeights);
+        bool _launch =
+            safeToMint(
+                _BPTokensIn,
+                _hypotheticalWeights,
+                _idealWeights,
+                _allUnderlyingPrices,
+                _amountsIn,
+                _currentBPTPrices,
+                _currentWeights
+            );
 
         if (_launch) {
             amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
