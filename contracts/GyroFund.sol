@@ -445,12 +445,21 @@ contract GyroFundV1 is Ownable, ERC20 {
                                   uint256[] memory _amountsOut,
                                   uint256[] memory _currentBPTPrices,
                                   uint256[] memory _currentWeights)
-                                  public view returns (bool _launch) {
+                                  public view returns (bool) {
         
         bool _launch = false;
+        bool _allPoolsWithinEpsilon;
+        bool[] memory _poolsWithinEpsilon = new bool[](_BPTokensOut.length);
 
+        (_allPoolsWithinEpsilon, _poolsWithinEpsilon) = checkPoolsWithinEpsilon(_BPTokensOut, _hypotheticalWeights, _idealWeights);
+        if (_allPoolsWithinEpsilon) {
+            _launch = true;
+            return _launch;
+        }
 
+        // check if weights that are beyond epsilon boundary are closer to ideal than current weights
 
+        return _launch;
     }
 
     function calculateAllWeights(uint256[] memory _currentBPTPrices, 
