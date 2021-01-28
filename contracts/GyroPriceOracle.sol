@@ -18,10 +18,10 @@ interface GyroPriceOracle {
         view
         returns (uint256);
 
-    function getAmountsToPayback(uint256 _gyroAmount, address[] memory _tokensOut)
+    function getAmountToRedeem(uint256 _dollarValueOut)
         external
         view
-        returns (uint256[] memory _amountsOut);
+        returns (uint256 _gyroAmount);
 
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
         external
@@ -47,17 +47,14 @@ contract DummyGyroPriceOracle is GyroPriceOracle {
         return result;
     }
 
-    function getAmountsToPayback(uint256 _gyroAmount, address[] memory _tokensOut)
+    function getAmountToRedeem(uint256 _dollarValueOut)
         external
         pure
         override
-        returns (uint256[] memory _amountsOut)
+        returns (uint256 _gyroAmount)
     {
-        uint256[] memory amounts = new uint256[](_tokensOut.length);
-        for (uint256 i = 0; i < _tokensOut.length; i++) {
-            amounts[i] = _gyroAmount / _tokensOut.length;
-        }
-        return amounts;
+        _gyroAmount = _dollarValueOut;
+        return _gyroAmount;
     }
 
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)

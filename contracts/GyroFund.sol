@@ -56,6 +56,19 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256 initialPoolPrice;
     }
 
+    struct PoolStatus {
+        bool _allPoolsHealthy;
+        bool _allPoolsWithinEpsilon;
+        bool[] _inputPoolHealth;
+        bool[] _poolsWithinEpsilon;
+    }
+
+    struct Weights {
+        uint256[] _idealWeights;
+        uint256[] _currentWeights;
+        uint256[] _hypotheticalWeights;
+    }
+
     PoolProperties[] public poolProperties;
 
 
@@ -209,11 +222,11 @@ contract GyroFundV1 is Ownable, ERC20 {
         return _stablecoinHealthy;
     }
 
-    function absValue(int128 _number) public pure returns (int128) {
-        if (_number >= 0) {
-            return _number;
+    function absValueSub(uint256 _number1, uint256 _number2) public pure returns (uint256) {
+        if (_number1 >= _number2) {
+            return _number1.sub(_number2);
         } else {
-            return _number.neg();
+            return _number2.sub(_number1);
         }
     }
 
@@ -304,7 +317,7 @@ contract GyroFundV1 is Ownable, ERC20 {
     function checkPoolsWithinEpsilon(address[] memory _BPTokensIn, 
                                   uint256[] memory _hypotheticalWeights, 
                                   uint256[] memory _idealWeights) 
-                                  public view returns (bool[] memory, bool) {
+                                  public view returns (bool, bool[] memory) {
 
         bool _allPoolsWithinEpsilon = true;
         bool[] memory _poolsWithinEpsilon = new bool[](_BPTokensIn.length);
@@ -372,11 +385,10 @@ contract GyroFundV1 is Ownable, ERC20 {
 
             if (!_poolsWithinEpsilon[i]) {
                 // check if _hypotheticalWeights[i] is closer to _idealWeights[i] than _currentWeights[i]
-                int128 _idealWeight = _idealWeights[i].fromUInt();
-                int128 _distanceHypotheticalToIdeal =
-                    absValue(_hypotheticalWeights[i].fromUInt().sub(_idealWeight));
-                int128 _distanceCurrentToIdeal =
-                    absValue(_currentWeights[i].fromUInt().sub(_idealWeight));
+                uint256 _distanceHypotheticalToIdeal =
+                    absValueSub(_hypotheticalWeights[i], _idealWeights[i]);
+                uint256 _distanceCurrentToIdeal =
+                    absValueSub(_currentWeights[i], _idealWeights[i]);
 
                 if (_distanceHypotheticalToIdeal >= _distanceCurrentToIdeal) {
                     _anyCheckFail = true;
@@ -392,7 +404,7 @@ contract GyroFundV1 is Ownable, ERC20 {
 
 
     function checkBPTokenOrder(address[] memory _BPTokensIn) public view returns (bool _correct) {
-        bool _correct = true;
+        _correct = true;
 
         for (uint256 i = 0; i < poolProperties.length; i++) {
             if (poolProperties[i].poolAddress != _BPTokensIn[i]) {
@@ -402,6 +414,26 @@ contract GyroFundV1 is Ownable, ERC20 {
         }
 
         return _correct;
+    }
+
+    function checkUnhealthyMovesToIdeal(address[] memory _BPTokensIn, 
+                                        bool[] memory _inputPoolHealth,
+                                        uint256[] memory _inputBPTWeights,
+                                        uint256[] memory _idealWeights)  public pure returns (bool _launch) {
+
+        bool _unhealthyMovesTowardIdeal = true;
+        for (uint256 i; i < _BPTokensIn.length; i++) {
+            if (!_inputPoolHealth[i]) {
+                if (_inputBPTWeights[i] > _idealWeights[i]) {
+                    _unhealthyMovesTowardIdeal = false;
+                    break;
+                }
+            }
+        }
+
+        if (_unhealthyMovesTowardIdeal) {
+            _launch = true;
+        }
     }
 
     function safeToMint(address[] memory _BPTokensIn, 
@@ -416,44 +448,36 @@ contract GyroFundV1 is Ownable, ERC20 {
 
         _launch = false;
 
-        (bool _allPoolsHealthy, bool _allPoolsWithinEpsilon, bool[] memory _inputPoolHealth, bool[] memory _poolsWithinEpsilon) = checkAllPoolsHealthy(_BPTokensIn, _hypotheticalWeights, _idealWeights, _allUnderlyingPrices);
+        PoolStatus memory poolStatus;
+
+        (poolStatus._allPoolsHealthy, poolStatus._allPoolsWithinEpsilon, poolStatus._inputPoolHealth, poolStatus._poolsWithinEpsilon) = 
+                checkAllPoolsHealthy(_BPTokensIn, _hypotheticalWeights, _idealWeights, _allUnderlyingPrices);
 
         // if check 1 succeeds and all pools healthy, then proceed with minting
-        if (_allPoolsHealthy) {
-            if (_allPoolsWithinEpsilon) {
+        if (poolStatus._allPoolsHealthy) {
+            if (poolStatus._allPoolsWithinEpsilon) {
                 _launch = true;
             }
         } else {
             // calculate proportional values of assets user wants to pay with
             uint256[] memory _inputBPTWeights =
                 calculatePortfolioWeights(_amountsIn, _currentBPTPrices);
-            if (_allPoolsWithinEpsilon) {
-                //Check that unhealthy pools have input weight below ideal weight. If true, mint
-                bool _unhealthyMovesTowardIdeal = true;
-                for (uint256 i; i < _BPTokensIn.length; i++) {
-                    if (!_inputPoolHealth[i]) {
-                        if (_inputBPTWeights[i] > _idealWeights[i]) {
-                            _unhealthyMovesTowardIdeal = false;
-                            break;
-                        }
-                    }
-                }
+            
+            //Check that unhealthy pools have input weight below ideal weight. If true, mint
+            if (poolStatus._allPoolsWithinEpsilon) {
 
-                if (_unhealthyMovesTowardIdeal) {
-                    _launch = true;
-                }
+                _launch = checkUnhealthyMovesToIdeal(_BPTokensIn, poolStatus._inputPoolHealth, _inputBPTWeights, _idealWeights);
             }
+
             //Outside of the epsilon boundary
             else {
-
-
                 _launch = safeToMintOutsideEpsilon(_BPTokensIn, 
-                                        _inputPoolHealth, 
+                                        poolStatus._inputPoolHealth, 
                                         _inputBPTWeights, 
                                         _idealWeights, 
                                         _hypotheticalWeights, 
                                         _currentWeights,
-                                        _poolsWithinEpsilon);
+                                        poolStatus._poolsWithinEpsilon);
             }   
 
         }
@@ -463,10 +487,7 @@ contract GyroFundV1 is Ownable, ERC20 {
 
     function safeToRedeem(address[] memory _BPTokensOut, 
                                   uint256[] memory _hypotheticalWeights, 
-                                  uint256[] memory _idealWeights, 
-                                  uint256[] memory _allUnderlyingPrices,
-                                  uint256[] memory _amountsOut,
-                                  uint256[] memory _currentBPTPrices,
+                                  uint256[] memory _idealWeights,
                                   uint256[] memory _currentWeights)
                                   public view returns (bool) {
         
@@ -481,6 +502,25 @@ contract GyroFundV1 is Ownable, ERC20 {
         }
 
         // check if weights that are beyond epsilon boundary are closer to ideal than current weights
+        bool _checkFail = false;
+        for (uint256 i; i < _BPTokensOut.length; i++) {
+            if (!_poolsWithinEpsilon[i]) {
+                // check if _hypotheticalWeights[i] is closer to _idealWeights[i] than _currentWeights[i]
+                uint256 _distanceHypotheticalToIdeal =
+                    absValueSub(_hypotheticalWeights[i], _idealWeights[i]);
+                uint256 _distanceCurrentToIdeal =
+                    absValueSub(_currentWeights[i], _idealWeights[i]);
+
+                if (_distanceHypotheticalToIdeal >= _distanceCurrentToIdeal) {
+                    _checkFail = true;
+                    break;
+                }
+            }
+        }
+        
+        if (! _checkFail) {
+            _launch = true;
+        }
 
         return _launch;
     }
@@ -537,17 +577,20 @@ contract GyroFundV1 is Ownable, ERC20 {
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
 
         uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+        
+        Weights memory weights;
 
+        (weights._idealWeights, weights._currentWeights, weights._hypotheticalWeights) 
+                    = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
 
-        (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
 
         bool _launch = safeToMint(_BPTokensIn, 
-                                  _hypotheticalWeights, 
-                                  _idealWeights, 
+                                  weights._hypotheticalWeights, 
+                                  weights._idealWeights, 
                                   _allUnderlyingPrices,
                                   _amountsIn,
                                   _currentBPTPrices,
-                                  _currentWeights);
+                                  weights._currentWeights);
 
 
         if (_launch) {
@@ -595,24 +638,33 @@ contract GyroFundV1 is Ownable, ERC20 {
 
         (uint256[] memory _idealWeights, uint256[] memory _currentWeights, uint256[] memory _hypotheticalWeights) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
 
-        bool _launch;
+        bool _launch = safeToRedeem(_BPTokensOut, _hypotheticalWeights, _idealWeights, _currentWeights);
 
+        if (_launch) {
+            uint256 _dollarValueOut = 0;
+            for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+                _dollarValueOut += _amountsOut[i].mul(_currentBPTPrices[i]);
+            }
 
-
-        _burn(msg.sender, _gyroAmountBurned);
-        uint256[] memory amountsOut =
-            gyroPriceOracle.getAmountsToPayback(_gyroAmountBurned, _tokensOut);
-        gyroRouter.withdraw(_tokensOut, amountsOut);
-
-        for (uint256 i = 0; i < _tokensOut.length; i++) {
-            require(amountsOut[i] >= _minAmountsOut[i], "too much slippage");
-            bool success =
-                IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
-            require(success, "failed to transfer tokens");
+            uint256 _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut);
         }
+
+
+
+        // _burn(msg.sender, _gyroAmountBurned);
+        // uint256[] memory amountsOut =
+        //     gyroPriceOracle.getAmountsToPayback(_gyroAmountBurned, _tokensOut);
+        // gyroRouter.withdraw(_tokensOut, amountsOut);
+
+        // for (uint256 i = 0; i < _tokensOut.length; i++) {
+        //     require(amountsOut[i] >= _minAmountsOut[i], "too much slippage");
+        //     bool success =
+        //         IERC20(_tokensOut[i]).transferFrom(address(gyroRouter), msg.sender, amountsOut[i]);
+        //     require(success, "failed to transfer tokens");
+        // }
 
         // emit Redeem(msg.sender, _gyroAmountBurned);
 
-        return amountsOut;
+        // return amountsOut;
     }
 }
