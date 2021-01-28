@@ -24,6 +24,11 @@ interface GyroFund is IERC20 {
         address[] memory _tokensOut,
         uint256[] memory _minValuesOut
     ) external returns (uint256[] memory);
+
+    function estimateMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        external
+        view
+        returns (uint256);
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -71,6 +76,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         emit Mint(msg.sender, _amountToMint);
 
         return _amountToMint;
+    }
+
+    function estimateMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
     }
 
     function redeem(
