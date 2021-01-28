@@ -20,6 +20,7 @@
     "hardhat": "^2.0.2",
     "hardhat-deploy": "^0.7.0-beta.44",
     "hardhat-typechain": "^0.3.4",
+    "npm-run-all": "^4.1.5",
     "solc": "0.7.6",
     "ts-generator": "^0.1.1",
     "ts-loader": "^8.0.14",
@@ -37,8 +38,10 @@
     "typechain"
   ],
   "scripts": {
-    "compile": "npx hardhat compile",
-    "compile-js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
+    "compile": "run-s compile:solidity compile:js",
+    "compile:full": "run-s compile:solidity deploy export compile:js",
+    "compile:solidity": "npx hardhat compile",
+    "compile:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
     "test": "npx hardhat test",
     "run-node": "npx hardhat node --show-accounts --no-deploy",
     "deploy": "npx hardhat deploy --network localhost --reset",
