@@ -31,6 +31,11 @@ interface GyroFund is IERC20 {
         external
         view
         returns (uint256);
+    
+    function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
+        external
+        view
+        returns (uint256);
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -66,6 +71,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] _idealWeights;
         uint256[] _currentWeights;
         uint256[] _hypotheticalWeights;
+        uint256 _nav;
     }
 
     struct FlowLogger {
@@ -197,6 +203,29 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _newWeights;
     }
 
+    // BPTAmounts = amounts in reserve
+    function nav(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
+        public
+        view
+        returns (uint256 _nav) 
+    {    
+        uint256 _totalPortfolioValue = 0;
+
+        for (uint256 i = 0; i < _BPTAmounts.length; i++) {
+            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].mul(_BPTPrices[i]));
+        }
+
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply > 0) {
+            _nav = _totalPortfolioValue.div(totalSupply());
+        }
+        else {
+            _nav = 1e18;
+        }
+
+        return _nav;
+    }
+
     function calculatePortfolioWeights(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
         public
         pure
@@ -244,7 +273,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
     }
 
-    function getPrice(address _token, bytes32 _tokenSymbol) public returns (uint256) {
+    function getPrice(address _token, bytes32 _tokenSymbol) public view returns (uint256) {
         return
             PriceOracle(_tokenAddressToProperties[_token].oracleAddress).getPrice(
                 bytes32ToString(_tokenSymbol)
@@ -267,7 +296,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return string(bytesStringTrimmed);
     }
 
-    function getAllTokenPrices() public returns (uint256[] memory) {
+    function getAllTokenPrices() public view returns (uint256[] memory) {
         uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
             address _tokenAddress = underlyingTokenAddresses[i];
@@ -592,7 +621,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         returns (
             uint256[] memory _idealWeights,
             uint256[] memory _currentWeights,
-            uint256[] memory _hypotheticalWeights
+            uint256[] memory _hypotheticalWeights,
+            uint256 _nav
         )
     {
         //Calculate the up to date ideal portfolio weights
@@ -609,10 +639,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         _currentWeights = calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
+        _nav = nav(_BPTCurrentAmounts, _currentBPTPrices);
 
         _hypotheticalWeights = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
-        return (_idealWeights, _currentWeights, _hypotheticalWeights);
+        return (_idealWeights, _currentWeights, _hypotheticalWeights, _nav);
     }
 
     //_amountsIn in should have a zero index if nothing has been submitted for a particular token
@@ -645,7 +676,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         (
             weights._idealWeights,
             weights._currentWeights,
-            weights._hypotheticalWeights
+            weights._hypotheticalWeights,
+            weights._nav
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
 
         bool _launch =
@@ -663,6 +695,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             revert("Too windy for launch");
         }
 
+        uint256 _dollarValueIn = 0;
+
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].mul(_currentBPTPrices[i]));
+        }
+
         FlowLogger memory flowLogger;
         (
             flowLogger._inflowHistory,
@@ -671,7 +709,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        amountToMint = gyroPriceOracle.getAmountToMint(_BPTokensIn, _amountsIn);
+        amountToMint = gyroPriceOracle.getAmountToMint(_dollarValueIn, flowLogger._inflowHistory, weights._nav);
 
         require(amountToMint >= _minGyroMinted, "too much slippage");
 
@@ -695,13 +733,91 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return amountToMint;
     }
 
-    function estimateMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+    function estimateMint(address[] memory _BPTokensIn, uint256[] memory _amountsIn)
         public
         view
         override
         returns (uint256)
     {
-        return gyroPriceOracle.getAmountToMint(_tokensIn, _amountsIn);
+        //Filter 1: Require that the tokens are supported and in correct order
+        bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
+        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
+
+        FlowLogger memory flowLogger;
+        (
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        ) = initializeFlowLogger();
+
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+
+        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            _zeroArray[i] = 0;
+        }
+        
+        Weights memory weights;
+        (
+            weights._idealWeights,
+            weights._currentWeights,
+            weights._hypotheticalWeights,
+            weights._nav
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
+
+        uint256 _dollarValueIn = 0;
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].mul(_currentBPTPrices[i]));
+        }
+
+        return gyroPriceOracle.getAmountToMint(_dollarValueIn, flowLogger._inflowHistory, weights._nav);
+    }
+
+    function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        //Filter 1: Require that the tokens are supported and in correct order
+        bool _orderCorrect = checkBPTokenOrder(_BPTokensOut);
+        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
+
+        FlowLogger memory flowLogger;
+        (
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        ) = initializeFlowLogger();
+
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+
+        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            _zeroArray[i] = 0;
+        }
+        
+        Weights memory weights;
+        (
+            weights._idealWeights,
+            weights._currentWeights,
+            weights._hypotheticalWeights,
+            weights._nav
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _amountsOut, _zeroArray);
+
+
+        uint256 _dollarValueOut = 0;
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].mul(_currentBPTPrices[i]));
+        }
+
+        return gyroPriceOracle.getAmountToRedeem(_dollarValueOut, flowLogger._outflowHistory, weights._nav);
     }
 
     function redeem(
@@ -734,7 +850,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         (
             weights._idealWeights,
             weights._currentWeights,
-            weights._hypotheticalWeights
+            weights._hypotheticalWeights,
+            weights._nav
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
 
         bool _launch =
@@ -763,7 +880,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut);
+        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut, flowLogger._outflowHistory, weights._nav);
 
         _burn(msg.sender, _gyroRedeemed);
 

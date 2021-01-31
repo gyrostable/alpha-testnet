@@ -10,16 +10,19 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ExtendedMath.sol";
 
 interface PriceOracle {
-    function getPrice(string memory tokenSymbol) external returns (uint256);
+    function getPrice(string memory tokenSymbol) external view returns (uint256);
 }
 
 interface GyroPriceOracle {
-    function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+    function getAmountToMint(uint256 _dollarValueIn, uint256 _inflowHistory, uint256 _nav)
         external
         view
         returns (uint256);
 
-    function getAmountToRedeem(uint256 _dollarValueOut) external view returns (uint256 _gyroAmount);
+    function getAmountToRedeem(uint256 _dollarValueOut, uint256 _outflowHistory, uint256 _nav) 
+        external 
+        view 
+        returns (uint256 _gyroAmount);
 
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
         external
@@ -33,26 +36,47 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
     using ABDKMath64x64 for int128;
     using SafeMath for uint256;
 
-    function getAmountToMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
-        external
-        pure
-        override
-        returns (uint256)
-    {
-        uint256 result = 0;
-        for (uint256 i = 0; i < _tokensIn.length; i++) {
-            result = result.add(_amountsIn[i]);
-        }
-        return result;
-    }
-
-    function getAmountToRedeem(uint256 _dollarValueOut)
+    function getAmountToMint(uint256 _dollarValueIn, uint256 _inflowHistory, uint256 _nav)
         external
         pure
         override
         returns (uint256 _gyroAmount)
     {
-        _gyroAmount = _dollarValueOut;
+        uint256 _one = 1e18;
+        if (_nav < _one) {
+            _gyroAmount = _dollarValueIn;
+        }
+        else {
+            // gyroAmount = dollarValueIn * (1 - eps_inflowHistory) or min of 0
+            uint256 _eps = 1e11;
+            uint256 _scaling = _eps.mul(_inflowHistory);
+            if (_scaling >= _one) {
+                _gyroAmount = 0;
+            }
+            else {
+                _gyroAmount = _dollarValueIn.mul( _one.sub(_scaling) );
+            }
+        }
+        _gyroAmount = _dollarValueIn;
+        return _gyroAmount;
+    }
+
+    function getAmountToRedeem(uint256 _dollarValueOut, uint256 _outflowHistory, uint256 _nav)
+        external
+        pure
+        override
+        returns (uint256 _gyroAmount)
+    {
+        if (_nav < 1e18) {
+            // gyroAmount = dollarValueOut * (1 + eps*outflowHistory)
+            uint256 _eps = 1e11;
+            uint256 _scaling = _eps.mul(_outflowHistory).add(1e18);
+            _gyroAmount = _dollarValueOut.mul(_scaling);
+        }
+        else {
+            _gyroAmount = _dollarValueOut;
+        }
+        
         return _gyroAmount;
     }
 
@@ -97,15 +121,13 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
 
 contract CompoundPriceWrapper is PriceOracle {
     address compoundOracle;
-    UniswapAnchoredView private uniswapanchor;
 
     constructor(address _compoundOracle) {
         compoundOracle = _compoundOracle;
     }
 
-    function getPrice(string memory tokenSymbol) public override returns (uint256) {
-        uniswapanchor = UniswapAnchoredView(compoundOracle);
-        return uniswapanchor.price(tokenSymbol);
+    function getPrice(string memory tokenSymbol) public view override returns (uint256) {
+        return UniswapAnchoredView(compoundOracle).price(tokenSymbol);
     }
 }
 
