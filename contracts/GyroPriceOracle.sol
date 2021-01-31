@@ -6,6 +6,7 @@ import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
 import "./compound/UniswapAnchoredView.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./ExtendedMath.sol";
 
@@ -14,69 +15,69 @@ interface PriceOracle {
 }
 
 interface GyroPriceOracle {
-    function getAmountToMint(uint256 _dollarValueIn, uint256 _inflowHistory, uint256 _nav)
-        external
-        view
-        returns (uint256);
+    function getAmountToMint(
+        uint256 _dollarValueIn,
+        uint256 _inflowHistory,
+        uint256 _nav
+    ) external view returns (uint256);
 
-    function getAmountToRedeem(uint256 _dollarValueOut, uint256 _outflowHistory, uint256 _nav) 
-        external 
-        view 
-        returns (uint256 _gyroAmount);
+    function getAmountToRedeem(
+        uint256 _dollarValueOut,
+        uint256 _outflowHistory,
+        uint256 _nav
+    ) external view returns (uint256 _gyroAmount);
 
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
         external
         view
-        returns (uint64 _bptPrice);
+        returns (uint256 _bptPrice);
 }
 
 contract GyroPriceOracleV1 is GyroPriceOracle {
     using ExtendedMath for int128;
+    using ExtendedMath for uint256;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using SafeMath for uint256;
 
-    function getAmountToMint(uint256 _dollarValueIn, uint256 _inflowHistory, uint256 _nav)
-        external
-        pure
-        override
-        returns (uint256 _gyroAmount)
-    {
+    uint256 constant bpoolDecimals = 18;
+
+    function getAmountToMint(
+        uint256 _dollarValueIn,
+        uint256 _inflowHistory,
+        uint256 _nav
+    ) external pure override returns (uint256 _gyroAmount) {
         uint256 _one = 1e18;
         if (_nav < _one) {
             _gyroAmount = _dollarValueIn;
-        }
-        else {
+        } else {
             // gyroAmount = dollarValueIn * (1 - eps_inflowHistory) or min of 0
             uint256 _eps = 1e11;
             uint256 _scaling = _eps.mul(_inflowHistory);
             if (_scaling >= _one) {
                 _gyroAmount = 0;
-            }
-            else {
-                _gyroAmount = _dollarValueIn.mul( _one.sub(_scaling) );
+            } else {
+                _gyroAmount = _dollarValueIn.mul(_one.sub(_scaling));
             }
         }
         _gyroAmount = _dollarValueIn;
         return _gyroAmount;
     }
 
-    function getAmountToRedeem(uint256 _dollarValueOut, uint256 _outflowHistory, uint256 _nav)
-        external
-        pure
-        override
-        returns (uint256 _gyroAmount)
-    {
+    function getAmountToRedeem(
+        uint256 _dollarValueOut,
+        uint256 _outflowHistory,
+        uint256 _nav
+    ) external pure override returns (uint256 _gyroAmount) {
         if (_nav < 1e18) {
             // gyroAmount = dollarValueOut * (1 + eps*outflowHistory)
             uint256 _eps = 1e11;
             uint256 _scaling = _eps.mul(_outflowHistory).add(1e18);
             _gyroAmount = _dollarValueOut.mul(_scaling);
-        }
-        else {
+        } else {
             _gyroAmount = _dollarValueOut;
         }
-        
+
         return _gyroAmount;
     }
 
@@ -84,7 +85,7 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
         public
         view
         override
-        returns (uint64 _bptPrice)
+        returns (uint256 _bptPrice)
     {
         /* calculations:
             bptSupply = # of BPT tokens
@@ -104,18 +105,35 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
         uint256 _bptSupply = _bPool.totalSupply();
         address[] memory _tokens = _bPool.getFinalTokens();
 
-        int128 _k = uint256(1).fromUInt(); // check that these are the right to get value 1
-        int128 _weightedProd = uint256(1).fromUInt();
+        uint256 _k = uint256(1); // check that these are the right to get value 1
+        uint256 _weightedProd = uint256(1);
 
         for (uint256 i = 0; i < _tokens.length; i++) {
-            int128 _weight = _bPool.getNormalizedWeight(_tokens[i]).fromUInt();
-            int128 _price = _underlyingPrices[i].fromUInt();
-            int128 _tokenBalance = _bPool.getBalance(_tokens[i]).fromUInt();
-            _k = _k.mul(_tokenBalance.powf(_weight));
-            _weightedProd = _weightedProd.mul(_price.div(_weight).powf(_weight));
+            uint256 _weight = _bPool.getNormalizedWeight(_tokens[i]);
+            uint256 _price = _underlyingPrices[i];
+            uint256 _tokenBalance = _bPool.getBalance(_tokens[i]);
+            uint256 _decimals = ERC20(_tokens[i]).decimals();
+            // _k = _k * _tokenBalance ** _weight
+            // console.log("balance", _tokenBalance, "weight", _weight, "decimal", _decimals);
+
+            if (_decimals < bpoolDecimals) {
+                _weight = _weight.div(10**(bpoolDecimals - _decimals));
+            }
+
+            console.log("balance", _tokenBalance, "weight", _weight);
+            console.log("decimal", _decimals);
+
+            _k = _k.mulPow(_tokenBalance, _weight, _decimals);
+
+            // _weightedProd = _weightedProd * (_price / _weight) ** _weight;
+            _weightedProd = _weightedProd.mulPow(
+                _price.scaledDiv(_weight, _decimals),
+                _weight,
+                _decimals
+            );
         }
 
-        return _k.mul(_weightedProd).div(_bptSupply.fromUInt()).toUInt();
+        return _k.mul(_weightedProd).div(_bptSupply);
     }
 }
 

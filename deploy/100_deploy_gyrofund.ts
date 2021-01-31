@@ -84,7 +84,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: fundParams,
     log: true,
     deterministicDeployment: true,
-    gasLimit: 9500000,
   });
   // if (gyroFundDeployment.newlyDeployed) {
   //   await execute("GyroFundV1", { from: deployer.address }, "initializeOwner");
@@ -116,4 +115,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 };
 
+func.tags = ["fund"];
 export default func;
