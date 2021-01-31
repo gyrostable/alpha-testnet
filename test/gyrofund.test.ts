@@ -104,10 +104,15 @@ describe("GyroFund", function () {
 
   describe("check stablecoin health", function () {
     it("should check that only stablecoins near the peg are accepted", async function () {
-      console.log("test");
-      const stablecoinhealth = await gyroFund.checkStablecoinHealth(1.06e15, '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a');
+      const stablecoinhealth = await gyroFund.checkStablecoinHealth(13, '0x8b6e6e7b5b3801fed2cafd4b22b8a16c2f2db21a');
       expect(stablecoinhealth).to.equal(false);
+    });
+  });
 
+  describe("check can get all token prices", function () {
+    it("should return all underlying token prices", async function () {
+      const allUnderlyingPrices = await gyroFund.getAllTokenPrices();
+      console.log(allUnderlyingPrices);
     });
   });
 });
