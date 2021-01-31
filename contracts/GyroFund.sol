@@ -910,6 +910,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _gyroRedeemed;
     }
 
+    
+
     function initializeFlowLogger()
         public
         view
@@ -936,6 +938,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         return (_inflowHistory, _outflowHistory, _currentBlock, _lastSeenBlock);
     }
+
 
     function finalizeFlowLogger(
         uint256 _inflowHistory,
