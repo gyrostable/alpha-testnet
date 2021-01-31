@@ -72,6 +72,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] _currentWeights;
         uint256[] _hypotheticalWeights;
         uint256 _nav;
+        uint256 _dollarValue;
     }
 
     struct FlowLogger {
@@ -695,10 +696,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             revert("Too windy for launch");
         }
 
-        uint256 _dollarValueIn = 0;
+        weights._dollarValue = 0;
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].mul(_currentBPTPrices[i]));
+            weights._dollarValue = weights._dollarValue.add(_amountsIn[i].mul(_currentBPTPrices[i]));
         }
 
         FlowLogger memory flowLogger;
@@ -709,7 +710,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        amountToMint = gyroPriceOracle.getAmountToMint(_dollarValueIn, flowLogger._inflowHistory, weights._nav);
+        amountToMint = gyroPriceOracle.getAmountToMint(weights._dollarValue, flowLogger._inflowHistory, weights._nav);
 
         require(amountToMint >= _minGyroMinted, "too much slippage");
 
