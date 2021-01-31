@@ -135,6 +135,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         // Calculate BPT prices for all pools
         uint256[] memory _underlyingPrices = getAllTokenPrices();
+        
         for (uint256 i = 0; i < poolProperties.length; i++) {
             BPool _bPool = BPool(poolProperties[i].poolAddress);
 
@@ -142,7 +143,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
 
             //For each pool fill the underlying token prices array
-            uint256[] memory _bPoolUnderlyingTokenPrices;
+            uint256[] memory _bPoolUnderlyingTokenPrices = new uint256[](_bPoolUnderlyingTokens.length);
             for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
                 _bPoolUnderlyingTokenPrices[j] = _underlyingPrices[
                     _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
@@ -168,12 +169,13 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         returns (uint256[] memory)
     {
         // order of _BPTPrices must be same as order of poolProperties
-        uint256[] memory _newWeights;
-        uint256[] memory _weightedReturns;
+        uint256[] memory _newWeights = new uint256[](_BPTPrices.length);
+        uint256[] memory _weightedReturns = new uint256[](_BPTPrices.length);
 
-        uint256[] memory _initPoolPrices;
-        uint256[] memory _initWeights;
-        uint256[] memory _returns;
+        uint256[] memory _initPoolPrices = new uint256[](_BPTPrices.length);
+        uint256[] memory _initWeights = new uint256[](_BPTPrices.length);
+        uint256[] memory _returns = new uint256[](_BPTPrices.length);
+
         for (uint256 i = 0; i < poolProperties.length; i++) {
             _initPoolPrices[i] = poolProperties[i].initialPoolPrice;
             _initWeights[i] = poolProperties[i].initialPoolWeight;
@@ -200,7 +202,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         pure
         returns (uint256[] memory)
     {
-        uint256[] memory _weights;
+        uint256[] memory _weights = new uint256[](_BPTPrices.length);
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
@@ -251,8 +253,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function bytes32ToString(bytes32 x) private pure returns (string memory) {
         bytes memory bytesString = new bytes(32);
-        uint256 charCount = 0;
-        for (uint256 j = 0; j < 32; j++) {
+        uint256 charCount = 0;        for (uint256 j = 0; j < 32; j++) {
             bytes1 char = bytes1(bytes32(uint256(x) * 2**(8 * j)));
             if (char != 0) {
                 bytesString[charCount] = char;
@@ -267,13 +268,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function getAllTokenPrices() public returns (uint256[] memory) {
-        uint256[] memory _allUnderlyingPrices;
-
+        uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
-            _allUnderlyingPrices[i] = getPrice(
-                underlyingTokenAddresses[i],
-                _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol
-            );
+            address _tokenAddress = underlyingTokenAddresses[i];
+            bytes32 _tokenSymbol = _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol;
+            uint256 _tokenPrice = getPrice(_tokenAddress, _tokenSymbol);
+            _allUnderlyingPrices[i] = _tokenPrice;
         }
         return _allUnderlyingPrices;
     }
@@ -294,7 +294,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
 
             //For each pool fill the underlying token prices array
-            uint256[] memory _bPoolUnderlyingTokenPrices;
+            uint256[] memory _bPoolUnderlyingTokenPrices = new uint256[](underlyingTokenAddresses.length);
             for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
                 _bPoolUnderlyingTokenPrices[j] = _allUnderlyingPrices[
                     _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
@@ -382,7 +382,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         // Check safety of input tokens
         bool _allPoolsWithinEpsilon;
         bool[] memory _poolsWithinEpsilon = new bool[](_BPTokensIn.length);
-        bool[] memory _inputPoolHealth;
+        bool[] memory _inputPoolHealth = new bool[](_BPTokensIn.length);
         bool _allPoolsHealthy = true;
 
         (_allPoolsWithinEpsilon, _poolsWithinEpsilon) = checkPoolsWithinEpsilon(
@@ -599,8 +599,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         _idealWeights = calculateImpliedPoolWeights(_currentBPTPrices);
 
         //Calculate the hypothetical weights if the new BPT tokens were added
-        uint256[] memory _BPTNewAmounts;
-        uint256[] memory _BPTCurrentAmounts;
+        uint256[] memory _BPTNewAmounts = new uint256[](_BPTokens.length);
+        uint256[] memory _BPTCurrentAmounts = new uint256[](_BPTokens.length);
 
         for (uint256 i = 0; i < _BPTokens.length; i++) {
             BPool _bPool = BPool(_BPTokens[i]);
@@ -631,7 +631,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
         require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
 
-        uint256[] memory _zeroArray;
+        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             _zeroArray[i] = 0;
         }
@@ -720,7 +720,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             "Input tokens in wrong order or contains invalid tokens"
         );
 
-        uint256[] memory _zeroArray;
+        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
             _zeroArray[i] = 0;
         }
