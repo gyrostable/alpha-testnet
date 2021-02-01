@@ -46,5 +46,20 @@ describe("MathTest", () => {
         expect(result.sub(expected).abs().lt(scale(1, 5))).to.be.true;
       }
     });
+
+    it("should compute k correctly", async () => {
+      const k = scale(1, 18);
+      const balance = scale(50_000, 18);
+      const weight = scale(5, 17);
+      const result = await mathTest.mulPow(k, balance, weight, 18);
+      const expected = BigNumber.from(
+        new BigDecimal(Math.pow(50_000, 0.5)).multipliedBy(Math.pow(10, 18)).toString()
+      );
+      expect(expected.sub(result).lt(1e4)).to.be.true;
+
+      const nextExpected = scale(50_000, 18);
+      const nextResult = await mathTest.mulPow(result, balance, weight, 18);
+      expect(nextExpected.sub(nextResult).lt(1e4)).to.be.true;
+    });
   });
 });

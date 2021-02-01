@@ -105,8 +105,8 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
         uint256 _bptSupply = _bPool.totalSupply();
         address[] memory _tokens = _bPool.getFinalTokens();
 
-        uint256 _k = uint256(1); // check that these are the right to get value 1
-        uint256 _weightedProd = uint256(1);
+        uint256 _k = uint256(1e18); // check that these are the right to get value 1
+        uint256 _weightedProd = uint256(1e18);
 
         for (uint256 i = 0; i < _tokens.length; i++) {
             uint256 _weight = _bPool.getNormalizedWeight(_tokens[i]);
@@ -117,23 +117,28 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
             // console.log("balance", _tokenBalance, "weight", _weight, "decimal", _decimals);
 
             if (_decimals < bpoolDecimals) {
-                _weight = _weight.div(10**(bpoolDecimals - _decimals));
+                _tokenBalance = _tokenBalance.mul(10**(bpoolDecimals - _decimals));
+                _price = _price.mul(10**(bpoolDecimals - _decimals));
             }
 
-            console.log("balance", _tokenBalance, "weight", _weight);
-            console.log("decimal", _decimals);
+            // console.log("balance", _tokenBalance, "weight", _weight);
+            // console.log("decimal", _decimals, "price", _price);
 
-            _k = _k.mulPow(_tokenBalance, _weight, _decimals);
+            _k = _k.mulPow(_tokenBalance, _weight, bpoolDecimals);
 
             // _weightedProd = _weightedProd * (_price / _weight) ** _weight;
             _weightedProd = _weightedProd.mulPow(
-                _price.scaledDiv(_weight, _decimals),
+                _price.scaledDiv(_weight, bpoolDecimals),
                 _weight,
-                _decimals
+                bpoolDecimals
             );
+            // console.log("_k", _k, "_weightedProd", _weightedProd);
         }
 
-        return _k.mul(_weightedProd).div(_bptSupply);
+        uint256 result = _k.mul(_weightedProd).div(_bptSupply);
+        // console.log("final _weightedProd", _weightedProd, "supply", _bptSupply);
+        console.log("final _k", _k, "result", result);
+        return result;
     }
 }
 
@@ -154,7 +159,7 @@ contract DummyPriceWrapper is PriceOracle {
         if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("DAI"))) {
             return 1e18;
         } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("USDC"))) {
-            return 1e18;
+            return 1e6;
         } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("WETH"))) {
             return 1350e18;
         } else {

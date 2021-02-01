@@ -98,7 +98,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const execOptions = { from: deployer.address, log: true };
   const amountApproved = BigNumber.from(10).pow(50);
-  for (const pool of initConfig.balancer_pools) {
+
+  for (const poolName of poolNames) {
+    const pool = initConfig.balancer_pools.find((p) => p.name === poolName);
+    if (!pool) {
+      throw new Error(`${poolName} not found`);
+    }
     const poolDeployment = await deployments.get(`BPool${pool.name}`);
     await execute("BalancerExternalTokenRouter", execOptions, "addPool", poolDeployment.address);
 

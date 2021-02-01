@@ -9,7 +9,8 @@ library ExtendedMath {
     using ABDKMath64x64 for uint256;
     using SafeMath for uint256;
 
-    uint256 constant decimalScale = 1e18;
+    uint256 constant decimals = 18;
+    uint256 constant decimalScale = 10**decimals;
 
     function powf(int128 _x, int128 _y) internal pure returns (int128 _xExpy) {
         // 2^(y * log2(x))
@@ -33,24 +34,24 @@ library ExtendedMath {
     function scaledMul(
         uint256 a,
         uint256 b,
-        uint256 decimals
+        uint256 _decimals
     ) internal pure returns (uint256) {
-        return a.mul(b).div(decimals);
+        return a.mul(b).div(10**_decimals);
     }
 
     function scaledMul(uint256 a, uint256 b) internal pure returns (uint256) {
-        return scaledMul(a, b, decimalScale);
+        return scaledMul(a, b, decimals);
     }
 
     function scaledDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-        return scaledDiv(a, b, decimalScale);
+        return scaledDiv(a, b, decimals);
     }
 
     function scaledDiv(
         uint256 a,
         uint256 b,
-        uint256 decimals
+        uint256 _decimals
     ) internal pure returns (uint256) {
-        return a.mul(decimals).div(b);
+        return a.mul(10**_decimals).div(b);
     }
 }

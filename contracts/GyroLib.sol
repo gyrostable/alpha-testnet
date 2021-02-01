@@ -5,11 +5,11 @@ import "./BalancerGyroRouter.sol";
 import "./GyroFund.sol";
 
 contract GyroLib {
-    GyroFund fund;
+    GyroFundV1 fund;
     BalancerExternalTokenRouter externalTokensRouter;
 
     constructor(address gyroFundAddress, address externalTokensRouterAddress) {
-        fund = GyroFund(gyroFundAddress);
+        fund = GyroFundV1(gyroFundAddress);
         externalTokensRouter = BalancerExternalTokenRouter(externalTokensRouterAddress);
     }
 
@@ -41,10 +41,26 @@ contract GyroLib {
     {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
-        return fund.estimateMint(bptTokens, amounts);
+
+        address[] memory poolAddresses = fund.poolAddresses();
+        uint256[] memory orderedAmounts = new uint256[](poolAddresses.length);
+
+        for (uint256 i = 0; i < bptTokens.length; i++) {
+            bool found = false;
+            for (uint256 j = 0; j < poolAddresses.length; j++) {
+                if (poolAddresses[j] == bptTokens[i]) {
+                    orderedAmounts[j] = amounts[i];
+                    found = true;
+                    break;
+                }
+            }
+            require(found, "could not find valid pool");
+        }
+
+        return fund.estimateMint(poolAddresses, orderedAmounts);
     }
 
     function getSupportedTokens() external view returns (address[] memory) {
-        return externalTokensRouter.allTokens();
+        return fund.getUnderlyingTokenAddresses();
     }
 }

@@ -31,7 +31,7 @@ interface GyroFund is IERC20 {
         external
         view
         returns (uint256);
-    
+
     function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
         external
         view
@@ -142,7 +142,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         // Calculate BPT prices for all pools
         uint256[] memory _underlyingPrices = getAllTokenPrices();
-        
+
         for (uint256 i = 0; i < poolProperties.length; i++) {
             BPool _bPool = BPool(poolProperties[i].poolAddress);
 
@@ -150,7 +150,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
 
             //For each pool fill the underlying token prices array
-            uint256[] memory _bPoolUnderlyingTokenPrices = new uint256[](_bPoolUnderlyingTokens.length);
+            uint256[] memory _bPoolUnderlyingTokenPrices =
+                new uint256[](_bPoolUnderlyingTokens.length);
             for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
                 _bPoolUnderlyingTokenPrices[j] = _underlyingPrices[
                     _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
@@ -181,7 +182,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         uint256[] memory _initPoolPrices = new uint256[](_BPTPrices.length);
         uint256[] memory _initWeights = new uint256[](_BPTPrices.length);
-        uint256[] memory _returns = new uint256[](_BPTPrices.length);
 
         for (uint256 i = 0; i < poolProperties.length; i++) {
             _initPoolPrices[i] = poolProperties[i].initialPoolPrice;
@@ -194,11 +194,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         uint256 _returnsSum = 0;
         for (uint256 i = 0; i < _BPTPrices.length; i++) {
-            _returnsSum = _returnsSum.add(_returns[i]);
+            _returnsSum = _returnsSum.add(_weightedReturns[i]);
         }
 
         for (uint256 i = 0; i < _BPTPrices.length; i++) {
-            _newWeights[i] = _returns[i].div(_returnsSum);
+            _newWeights[i] = _weightedReturns[i].div(_returnsSum);
         }
 
         return _newWeights;
@@ -208,8 +208,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     function nav(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
         public
         view
-        returns (uint256 _nav) 
-    {    
+        returns (uint256 _nav)
+    {
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
@@ -219,8 +219,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0) {
             _nav = _totalPortfolioValue.div(totalSupply());
-        }
-        else {
+        } else {
             _nav = 1e18;
         }
 
@@ -283,7 +282,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function bytes32ToString(bytes32 x) private pure returns (string memory) {
         bytes memory bytesString = new bytes(32);
-        uint256 charCount = 0;        for (uint256 j = 0; j < 32; j++) {
+        uint256 charCount = 0;
+        for (uint256 j = 0; j < 32; j++) {
             bytes1 char = bytes1(bytes32(uint256(x) * 2**(8 * j)));
             if (char != 0) {
                 bytesString[charCount] = char;
@@ -301,7 +301,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
             address _tokenAddress = underlyingTokenAddresses[i];
-            bytes32 _tokenSymbol = _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol;
+            bytes32 _tokenSymbol =
+                _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol;
             uint256 _tokenPrice = getPrice(_tokenAddress, _tokenSymbol);
             _allUnderlyingPrices[i] = _tokenPrice;
         }
@@ -315,8 +316,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices)
         public
         view
-        returns (uint256[] memory _currentBPTPrices)
+        returns (uint256[] memory)
     {
+        uint256[] memory _currentBPTPrices = new uint256[](poolProperties.length);
+
         // Calculate BPT prices for all pools
         for (uint256 i = 0; i < poolProperties.length; i++) {
             BPool _bPool = BPool(poolProperties[i].poolAddress);
@@ -324,7 +327,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
 
             //For each pool fill the underlying token prices array
-            uint256[] memory _bPoolUnderlyingTokenPrices = new uint256[](underlyingTokenAddresses.length);
+            uint256[] memory _bPoolUnderlyingTokenPrices =
+                new uint256[](underlyingTokenAddresses.length);
             for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
                 _bPoolUnderlyingTokenPrices[j] = _allUnderlyingPrices[
                     _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
@@ -474,6 +478,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function checkBPTokenOrder(address[] memory _BPTokensIn) public view returns (bool _correct) {
+        require(
+            _BPTokensIn.length == poolProperties.length,
+            "bptokens do not have the correct number of addreses"
+        );
         _correct = true;
 
         for (uint256 i = 0; i < poolProperties.length; i++) {
@@ -635,7 +643,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         for (uint256 i = 0; i < _BPTokens.length; i++) {
             BPool _bPool = BPool(_BPTokens[i]);
-            _BPTCurrentAmounts[i] = _bPool.balanceOf(msg.sender);
+            _BPTCurrentAmounts[i] = _bPool.balanceOf(address(this));
             _BPTNewAmounts[i] = _BPTCurrentAmounts[i].add(_amountsIn[i]).sub(_amountsOut[i]);
         }
 
@@ -699,7 +707,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         weights._dollarValue = 0;
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            weights._dollarValue = weights._dollarValue.add(_amountsIn[i].mul(_currentBPTPrices[i]));
+            weights._dollarValue = weights._dollarValue.add(
+                _amountsIn[i].mul(_currentBPTPrices[i])
+            );
         }
 
         FlowLogger memory flowLogger;
@@ -710,7 +720,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        amountToMint = gyroPriceOracle.getAmountToMint(weights._dollarValue, flowLogger._inflowHistory, weights._nav);
+        amountToMint = gyroPriceOracle.getAmountToMint(
+            weights._dollarValue,
+            flowLogger._inflowHistory,
+            weights._nav
+        );
 
         require(amountToMint >= _minGyroMinted, "too much slippage");
 
@@ -760,7 +774,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             _zeroArray[i] = 0;
         }
-        
+
         Weights memory weights;
         (
             weights._idealWeights,
@@ -774,7 +788,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _dollarValueIn = _dollarValueIn.add(_amountsIn[i].mul(_currentBPTPrices[i]));
         }
 
-        return gyroPriceOracle.getAmountToMint(_dollarValueIn, flowLogger._inflowHistory, weights._nav);
+        return
+            gyroPriceOracle.getAmountToMint(
+                _dollarValueIn,
+                flowLogger._inflowHistory,
+                weights._nav
+            );
     }
 
     function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
@@ -803,7 +822,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
             _zeroArray[i] = 0;
         }
-        
+
         Weights memory weights;
         (
             weights._idealWeights,
@@ -812,13 +831,17 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._nav
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _amountsOut, _zeroArray);
 
-
         uint256 _dollarValueOut = 0;
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
             _dollarValueOut = _dollarValueOut.add(_amountsOut[i].mul(_currentBPTPrices[i]));
         }
 
-        return gyroPriceOracle.getAmountToRedeem(_dollarValueOut, flowLogger._outflowHistory, weights._nav);
+        return
+            gyroPriceOracle.getAmountToRedeem(
+                _dollarValueOut,
+                flowLogger._outflowHistory,
+                weights._nav
+            );
     }
 
     function redeem(
@@ -881,7 +904,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(_dollarValueOut, flowLogger._outflowHistory, weights._nav);
+        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(
+            _dollarValueOut,
+            flowLogger._outflowHistory,
+            weights._nav
+        );
 
         _burn(msg.sender, _gyroRedeemed);
 
@@ -910,8 +937,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _gyroRedeemed;
     }
 
-    
-
     function initializeFlowLogger()
         public
         view
@@ -939,7 +964,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return (_inflowHistory, _outflowHistory, _currentBlock, _lastSeenBlock);
     }
 
-
     function finalizeFlowLogger(
         uint256 _inflowHistory,
         uint256 _outflowHistory,
@@ -957,5 +981,21 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         if (_lastSeenBlock < _currentBlock) {
             lastSeenBlock = _currentBlock;
         }
+    }
+
+    function poolAddresses() public view returns (address[] memory) {
+        address[] memory _addresses = new address[](poolProperties.length);
+        for (uint256 i = 0; i < poolProperties.length; i++) {
+            _addresses[i] = poolProperties[i].poolAddress;
+        }
+        return _addresses;
+    }
+
+    function getUnderlyingTokenAddresses() external view returns (address[] memory) {
+        address[] memory _addresses = new address[](underlyingTokenAddresses.length);
+        for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
+            _addresses[i] = underlyingTokenAddresses[i];
+        }
+        return _addresses;
     }
 }
