@@ -64,8 +64,8 @@ library ExtendedMath {
         uint256 exp,
         uint256 _decimals
     ) internal pure returns (uint256) {
-        uint256 result = 1;
-        for (uint256 i = 0; i < exp; i) {
+        uint256 result = 1e18;
+        for (uint256 i = 0; i < exp; i++) {
             result = scaledMul(result, base, _decimals);
         }
         return result;
