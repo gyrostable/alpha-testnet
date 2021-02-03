@@ -39,10 +39,11 @@
     "typechain"
   ],
   "scripts": {
-    "compile": "run-s compile:solidity compile:js",
-    "compile:full": "run-s compile:solidity deploy export compile:js",
-    "compile:solidity": "npx hardhat compile",
-    "compile:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
+    "build": "run-s build:solidity build:js",
+    "build:full": "run-s build:solidity deploy export build:js",
+    "build:solidity": "npx hardhat compile",
+    "build:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
+    "local:mint": "npx hardhat run --network localhost scripts/mint-gyro.ts",
     "test": "npx hardhat test",
     "run-node": "npx hardhat node --show-accounts --no-deploy",
     "deploy": "npx hardhat deploy --network localhost --reset",

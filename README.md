@@ -7,7 +7,7 @@ First, install the dependencies and compile using
 
 ```
 yarn install
-yarn compile
+yarn build
 ```
 
 and for development purposes, link the package using
@@ -31,7 +31,7 @@ this account to MetaMask using its private key.
 Then, in another terminal, deploy the contracts, export information and compile everything using
 
 ```
-yarn compile:full
+yarn build:full
 ```
 
 At this stage, the SDK should work properly, try running the tests following the instructions at: https://github.com/stablecoin-labs/gyro-sdk
