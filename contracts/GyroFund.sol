@@ -207,17 +207,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     // BPTAmounts = amounts in reserve
-    function nav(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
+    function nav(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices, uint256 _totalPortfolioValue)
         public
         view
         returns (uint256 _nav)
     {
-        uint256 _totalPortfolioValue = 0;
-
-        for (uint256 i = 0; i < _BPTAmounts.length; i++) {
-            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].mul(_BPTPrices[i]));
-        }
-
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0) {
             _nav = _totalPortfolioValue.div(totalSupply());
@@ -667,7 +661,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _currentWeights = _idealWeights;
         }
 
-        _nav = nav(_BPTCurrentAmounts, _currentBPTPrices);
+        _nav = nav(_BPTCurrentAmounts, _currentBPTPrices, _totalPortfolioValue);
 
         (_hypotheticalWeights, ) = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
