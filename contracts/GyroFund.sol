@@ -43,6 +43,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
     using SafeMath for uint256;
+    using ExtendedMath for uint256;
 
     GyroPriceOracle gyroPriceOracle;
     GyroRouter gyroRouter;
@@ -73,6 +74,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] _hypotheticalWeights;
         uint256 _nav;
         uint256 _dollarValue;
+        uint256 _totalPortfolioValue;
     }
 
     struct FlowLogger {
@@ -229,20 +231,26 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     function calculatePortfolioWeights(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
         public
         pure
-        returns (uint256[] memory)
+        returns (uint256[] memory, uint256)
     {
-        uint256[] memory _weights = new uint256[](_BPTPrices.length);
+        uint256[] memory _weights;
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
             _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].mul(_BPTPrices[i]));
         }
 
+        if (_totalPortfolioValue == 0) {
+            return (_weights, _totalPortfolioValue);
+        }
+
+        _weights = new uint256[](_BPTPrices.length);
+
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
             _weights[i] = _BPTAmounts[i].mul(_BPTPrices[i]).div(_totalPortfolioValue);
         }
 
-        return _weights;
+        return (_weights, _totalPortfolioValue);
     }
 
     function checkStablecoinHealth(uint256 stablecoinPrice, address stablecoinAddress)
@@ -547,8 +555,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             }
         } else {
             // calculate proportional values of assets user wants to pay with
-            uint256[] memory _inputBPTWeights =
+            (uint256[] memory _inputBPTWeights, uint256 _totalPortfolioValue) =
                 calculatePortfolioWeights(_amountsIn, _currentBPTPrices);
+            if (_totalPortfolioValue == 0) {
+                _inputBPTWeights = _idealWeights;
+            }
 
             //Check that unhealthy pools have input weight below ideal weight. If true, mint
             if (poolStatus._allPoolsWithinEpsilon) {
@@ -631,7 +642,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             uint256[] memory _idealWeights,
             uint256[] memory _currentWeights,
             uint256[] memory _hypotheticalWeights,
-            uint256 _nav
+            uint256 _nav,
+            uint256 _totalPortfolioValue
         )
     {
         //Calculate the up to date ideal portfolio weights
@@ -647,12 +659,19 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _BPTNewAmounts[i] = _BPTCurrentAmounts[i].add(_amountsIn[i]).sub(_amountsOut[i]);
         }
 
-        _currentWeights = calculatePortfolioWeights(_BPTCurrentAmounts, _currentBPTPrices);
+        (_currentWeights, _totalPortfolioValue) = calculatePortfolioWeights(
+            _BPTCurrentAmounts,
+            _currentBPTPrices
+        );
+        if (_totalPortfolioValue == 0) {
+            _currentWeights = _idealWeights;
+        }
+
         _nav = nav(_BPTCurrentAmounts, _currentBPTPrices);
 
-        _hypotheticalWeights = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
+        (_hypotheticalWeights, ) = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
-        return (_idealWeights, _currentWeights, _hypotheticalWeights, _nav);
+        return (_idealWeights, _currentWeights, _hypotheticalWeights, _nav, _totalPortfolioValue);
     }
 
     //_amountsIn in should have a zero index if nothing has been submitted for a particular token
@@ -686,7 +705,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._idealWeights,
             weights._currentWeights,
             weights._hypotheticalWeights,
-            weights._nav
+            weights._nav,
+            weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
 
         bool _launch =
@@ -780,12 +800,13 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._idealWeights,
             weights._currentWeights,
             weights._hypotheticalWeights,
-            weights._nav
+            weights._nav,
+            weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
 
         uint256 _dollarValueIn = 0;
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].mul(_currentBPTPrices[i]));
+            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].scaledMul(_currentBPTPrices[i]));
         }
 
         return
@@ -828,7 +849,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._idealWeights,
             weights._currentWeights,
             weights._hypotheticalWeights,
-            weights._nav
+            weights._nav,
+            weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _amountsOut, _zeroArray);
 
         uint256 _dollarValueOut = 0;
@@ -875,7 +897,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._idealWeights,
             weights._currentWeights,
             weights._hypotheticalWeights,
-            weights._nav
+            weights._nav,
+            weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
 
         bool _launch =
