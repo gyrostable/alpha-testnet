@@ -18,7 +18,6 @@ contract GyroLib {
         uint256[] memory _amountsIn,
         uint256 _minAmountOut
     ) public returns (uint256) {
-
         for (uint256 i = 0; i < _tokensIn.length; i++) {
             bool success =
                 IERC20(_tokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
@@ -39,6 +38,41 @@ contract GyroLib {
         return minted;
     }
 
+    function redeemToUnderlyingTokens(
+        address[] memory _tokensOut,
+        uint256[] memory _amountsOut,
+        uint256 _maxRedeemed
+    ) public returns (uint256) {
+        (address[] memory _BPTokensOut, uint256[] memory _BPAmountsOut) =
+            externalTokensRouter.estimateWithdraw(_tokensOut, _amountsOut);
+
+        (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
+            sortBPTokenstoPools(_BPTokensOut, _BPAmountsOut);
+
+        uint256 _amountToRedeem = fund.estimateRedeem(_sortedAddresses, _sortedAmounts);
+
+        require(_amountToRedeem < _maxRedeemed, "too much slippage");
+
+        require(
+            fund.transferFrom(msg.sender, address(this), _amountToRedeem),
+            "failed to send gyro to lib"
+        );
+
+        uint256 _amountRedeemed = fund.redeem(_sortedAddresses, _sortedAmounts, _maxRedeemed);
+
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            IERC20(_BPTokensOut[i]).approve(address(externalTokensRouter), _BPAmountsOut[i]);
+        }
+
+        externalTokensRouter.withdraw(_tokensOut, _amountsOut);
+
+        for (uint256 i = 0; i < _tokensOut.length; i++) {
+            IERC20(_tokensOut[i]).transfer(msg.sender, _amountsOut[i]);
+        }
+
+        return _amountRedeemed;
+    }
+
     function estimateUnderlyingTokens(address[] memory _tokensIn, uint256[] memory _amountsIn)
         public
         view
@@ -51,6 +85,20 @@ contract GyroLib {
             sortBPTokenstoPools(bptTokens, amounts);
 
         return fund.estimateMint(sortedAddresses, sortedAmounts);
+    }
+
+    function estimateRedeemedGyro(address[] memory _tokensOut, uint256[] memory _amountsOut)
+        public
+        view
+        returns (uint256)
+    {
+        (address[] memory bptTokens, uint256[] memory amounts) =
+            externalTokensRouter.estimateWithdraw(_tokensOut, _amountsOut);
+
+        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
+            sortBPTokenstoPools(bptTokens, amounts);
+
+        return fund.estimateRedeem(sortedAddresses, sortedAmounts);
     }
 
     function getSupportedTokens() external view returns (address[] memory) {
@@ -78,8 +126,5 @@ contract GyroLib {
         }
 
         return (sortedAddresses, sortedAmounts);
-
     }
-
-
 }

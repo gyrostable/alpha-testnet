@@ -25,12 +25,12 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             address token = _tokensIn[i];
             uint256 amount = _amountsIn[i];
             bool success = IERC20(token).transferFrom(msg.sender, address(this), amount);
-            require(success, "failed to transfer tokens from GyroFund to GryoRouter");
+            require(success, "failed to transfer tokens from sender to GryoRouter");
 
             BPool pool = BPool(choosePoolToDeposit(token, amount));
             uint256 poolAmountOut = pool.joinswapExternAmountIn(token, amount, 0);
             success = pool.transfer(msg.sender, poolAmountOut);
-            require(success, "failed to transfer BPT to GyroFund");
+            require(success, "failed to transfer BPT to sender");
 
             _bpAmounts[i] = poolAmountOut;
             _bpAddresses[i] = address(pool);
@@ -60,6 +60,26 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         return (_bpAddresses, _bpAmounts);
     }
 
+    function estimateWithdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
+        external
+        view
+        returns (address[] memory, uint256[] memory)
+    {
+        address[] memory _bpAddresses = new address[](_tokensOut.length);
+        uint256[] memory _bpAmounts = new uint256[](_amountsOut.length);
+
+        for (uint256 i = 0; i < _tokensOut.length; i++) {
+            address token = _tokensOut[i];
+            uint256 amount = _amountsOut[i];
+
+            BPool pool = BPool(choosePoolToDeposit(token, amount));
+            uint256 poolAmountOut = calcPoolInGivenSingleOut(pool, token, amount);
+            _bpAddresses[i] = address(pool);
+            _bpAmounts[i] = poolAmountOut;
+        }
+        return (_bpAddresses, _bpAmounts);
+    }
+
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
         external
         override
@@ -72,12 +92,12 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             uint256 poolAmountIn = calcPoolInGivenSingleOut(pool, token, amount);
 
             bool success = pool.transferFrom(msg.sender, address(this), poolAmountIn);
-            require(success, "failed to transfer BPT from GyroFund to GryoRouter");
+            require(success, "failed to transfer BPT from sender to GryoRouter");
 
             pool.exitswapExternAmountOut(token, amount, 0);
 
             success = IERC20(token).transfer(msg.sender, amount);
-            require(success, "failed to transfer token to GyroFund");
+            require(success, "failed to transfer token to sender");
         }
         return (_tokensOut, _amountsOut);
     }
