@@ -46,10 +46,10 @@ async function main() {
     })
     .filter(notEmpty);
 
-  const mintEvent = events.find((evt) => evt.name === "Mint")!!;
-  const minted = mintEvent.args.amount.div(ONE).toString();
-  console.log(`gas used: ${receipt.gasUsed}`);
-  console.log(`amount minted: ${minted}`);
+  // const mintEvent = events.find((evt) => evt.name === "Mint")!!;
+  // const minted = mintEvent.args.amount.div(ONE).toString();
+  // console.log(`gas used: ${receipt.gasUsed}`);
+  // console.log(`amount minted: ${minted}`);
 
   const gyroToken = { address: gyroFund.address, name: "gyro" };
   for (const { name, address } of [gyroToken].concat(tokens)) {
