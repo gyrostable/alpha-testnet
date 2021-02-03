@@ -21,6 +21,12 @@ interface GyroFund is IERC20 {
         uint256 _minGyroMinted
     ) external returns (uint256);
 
+    function mintTest(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _gyroToMint
+    ) external returns (uint256 );
+
     function redeem(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
@@ -665,6 +671,21 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         (_hypotheticalWeights, ) = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
         return (_idealWeights, _currentWeights, _hypotheticalWeights, _nav, _totalPortfolioValue);
+    }
+
+    function mintTest(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _gyroToMint
+    ) public override returns (uint256 ) {
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            bool success =
+                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
+            require(success, "failed to transfer tokens, check allowance");
+        }
+
+        _mint(msg.sender, _gyroToMint);
+        return _gyroToMint;
     }
 
     //_amountsIn in should have a zero index if nothing has been submitted for a particular token
