@@ -65,14 +65,6 @@ contract GyroLib {
         address[] memory sortedAddresses = fund.poolAddresses();
         uint256[] memory sortedAmounts = new uint256[](sortedAddresses.length);
 
-        for (uint256 i = 0; i< _BPTokensIn.length; i++ ) {
-            console.log("BP Tokens in", _BPTokensIn[i]);
-        }
-
-        for (uint256 i = 0; i< sortedAddresses.length; i++ ) {
-            console.log("Pool properties", sortedAddresses[i]);
-        }
-
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool found = false;
             for (uint256 j = 0; j < sortedAddresses.length; j++) {
