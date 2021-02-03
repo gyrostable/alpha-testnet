@@ -49,7 +49,7 @@ contract GyroLib {
             bool found = false;
             for (uint256 j = 0; j < poolAddresses.length; j++) {
                 if (poolAddresses[j] == bptTokens[i]) {
-                    orderedAmounts[j] = amounts[i];
+                    orderedAmounts[j] += amounts[i];
                     found = true;
                     break;
                 }
