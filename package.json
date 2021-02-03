@@ -44,6 +44,7 @@
     "build:solidity": "npx hardhat compile",
     "build:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
     "local:mint": "npx hardhat run --network localhost scripts/mint-gyro.ts",
+    "local:redeem": "npx hardhat run --network localhost scripts/redeem-gyro.ts",
     "test": "npx hardhat test",
     "run-node": "npx hardhat node --show-accounts --no-deploy",
     "deploy": "npx hardhat deploy --network localhost --reset",
