@@ -785,6 +785,90 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return amountToMint;
     }
 
+    function wouldMintChecksPass(address[] memory _BPTokensIn, 
+                            uint256[] memory _amountsIn, 
+                            uint256 _minGyroMinted) 
+                            public
+                            view
+                            returns(bool, string memory) {
+
+        require(
+            _BPTokensIn.length == _amountsIn.length,
+            "tokensIn and valuesIn should have the same number of elements"
+        );
+
+        //Filter 1: Require that the tokens are supported and in correct order
+        bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
+        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
+
+        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            _zeroArray[i] = 0;
+        }
+
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+
+        Weights memory weights;
+
+        (
+            weights._idealWeights,
+            weights._currentWeights,
+            weights._hypotheticalWeights,
+            weights._nav,
+            weights._totalPortfolioValue
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
+
+        bool _launch =
+            safeToMint(
+                _BPTokensIn,
+                weights._hypotheticalWeights,
+                weights._idealWeights,
+                _allUnderlyingPrices,
+                _amountsIn,
+                _currentBPTPrices,
+                weights._currentWeights
+            );
+
+        if (!_launch) {
+            string memory errorMessage = "This combination of tokens would move gyroscope weights too far from target.";
+            return (false, errorMessage);
+        }
+
+        weights._dollarValue = 0;
+
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            weights._dollarValue = weights._dollarValue.add(
+                _amountsIn[i].scaledMul(_currentBPTPrices[i])
+            );
+        }
+
+        FlowLogger memory flowLogger;
+        (
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        ) = initializeFlowLogger();
+
+        uint256 amountToMint = gyroPriceOracle.getAmountToMint(
+            weights._dollarValue,
+            flowLogger._inflowHistory,
+            weights._nav
+        );
+
+        if (amountToMint < _minGyroMinted) {
+            string memory errorMessage = "Too much slippage is expected";
+            return (false, errorMessage);
+        } else {
+            string memory happyMessage = "Minting checks pass.";
+            return (true, happyMessage);
+        }
+
+
+    }
+
     function estimateMint(address[] memory _BPTokensIn, uint256[] memory _amountsIn)
         public
         view
