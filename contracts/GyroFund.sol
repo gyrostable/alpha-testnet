@@ -486,17 +486,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function checkBPTokenOrder(address[] memory _BPTokensIn) public view returns (bool _correct) {
 
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            console.log("BP tokens", _BPTokensIn[i]);
-
-        }
-
-        for (uint256 i = 0; i < poolProperties.length; i++) {
-            console.log("poolproperties", poolProperties[i].poolAddress);
-
-        }
-
-
         require(
             _BPTokensIn.length == poolProperties.length,
             "bptokens do not have the correct number of addreses"

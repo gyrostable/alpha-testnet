@@ -28,13 +28,13 @@ contract GyroLib {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.deposit(_tokensIn, _amountsIn);
 
-        (address[] memory poolAddresses, uint256[] memory orderedAmounts) =
+        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        for (uint256 i = 0; i < bptTokens.length; i++) {
-            IERC20(bptTokens[i]).approve(address(fund), orderedAmounts[i]);
+        for (uint256 i = 0; i < sortedAddresses.length; i++) {
+            IERC20(sortedAddresses[i]).approve(address(fund), sortedAmounts[i]);
         }
-        uint256 minted = fund.mint(bptTokens, orderedAmounts, _minAmountOut);
+        uint256 minted = fund.mint(sortedAddresses, sortedAmounts, _minAmountOut);
         require(fund.transfer(msg.sender, minted), "failed to send back gyro");
         return minted;
     }
@@ -47,10 +47,10 @@ contract GyroLib {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
 
-        (address[] memory poolAddresses, uint256[] memory orderedAmounts) =
+        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        return fund.estimateMint(poolAddresses, orderedAmounts);
+        return fund.estimateMint(sortedAddresses, sortedAmounts);
     }
 
     function getSupportedTokens() external view returns (address[] memory) {
@@ -62,22 +62,22 @@ contract GyroLib {
         view
         returns (address[] memory, uint256[] memory)
     {
-        address[] memory poolAddresses = fund.poolAddresses();
-        uint256[] memory orderedAmounts = new uint256[](poolAddresses.length);
+        address[] memory sortedAddresses = fund.poolAddresses();
+        uint256[] memory sortedAmounts = new uint256[](sortedAddresses.length);
 
         for (uint256 i = 0; i< _BPTokensIn.length; i++ ) {
-            console.log("BP Tokens in 1", _BPTokensIn[i]);
+            console.log("BP Tokens in", _BPTokensIn[i]);
         }
 
-        for (uint256 i = 0; i< poolAddresses.length; i++ ) {
-            console.log("Pool properties 2", poolAddresses[i]);
+        for (uint256 i = 0; i< sortedAddresses.length; i++ ) {
+            console.log("Pool properties", sortedAddresses[i]);
         }
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool found = false;
-            for (uint256 j = 0; j < poolAddresses.length; j++) {
-                if (poolAddresses[j] == _BPTokensIn[i]) {
-                    orderedAmounts[j] += amounts[i];
+            for (uint256 j = 0; j < sortedAddresses.length; j++) {
+                if (sortedAddresses[j] == _BPTokensIn[i]) {
+                    sortedAmounts[j] += amounts[i];
                     found = true;
                     break;
                 }
@@ -85,7 +85,7 @@ contract GyroLib {
             require(found, "could not find valid pool");
         }
 
-        return (poolAddresses, orderedAmounts);
+        return (sortedAddresses, sortedAmounts);
 
     }
 
