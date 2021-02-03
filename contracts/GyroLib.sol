@@ -87,6 +87,22 @@ contract GyroLib {
         return fund.estimateMint(sortedAddresses, sortedAmounts);
     }
 
+    function wouldMintChecksPass(address[] memory _tokensIn, uint256[] memory _amountsIn, uint256 _minGyroMinted)
+        public
+        view
+        returns (bool, string memory)
+    {
+        (address[] memory bptTokens, uint256[] memory amounts) =
+            externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
+
+        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
+            sortBPTokenstoPools(bptTokens, amounts);
+
+        return fund.wouldMintChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted);
+        
+    }
+
+
     function estimateRedeemedGyro(address[] memory _tokensOut, uint256[] memory _amountsOut)
         public
         view

@@ -42,6 +42,13 @@ interface GyroFund is IERC20 {
         external
         view
         returns (uint256);
+
+    function wouldMintChecksPass(address[] memory _BPTokensIn, 
+                            uint256[] memory _amountsIn, 
+                            uint256 _minGyroMinted) 
+                            external
+                            view
+                            returns(bool, string memory);
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
