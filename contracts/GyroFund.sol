@@ -191,7 +191,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         for (uint256 i = 0; i < _BPTPrices.length; i++) {
-            _weightedReturns[i] = _BPTPrices[i].div(_initPoolPrices[i]).mul(_initWeights[i]);
+            _weightedReturns[i] = _BPTPrices[i].scaledDiv(_initPoolPrices[i]).scaledMul(_initWeights[i]);
         }
 
         uint256 _returnsSum = 0;
@@ -200,21 +200,20 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         for (uint256 i = 0; i < _BPTPrices.length; i++) {
-            _newWeights[i] = _weightedReturns[i].div(_returnsSum);
+            _newWeights[i] = _weightedReturns[i].scaledDiv(_returnsSum);
         }
 
         return _newWeights;
     }
-
-    // BPTAmounts = amounts in reserve
-    function nav(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices, uint256 _totalPortfolioValue)
+    
+    function nav(uint256 _totalPortfolioValue)
         public
         view
         returns (uint256 _nav)
     {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0) {
-            _nav = _totalPortfolioValue.div(totalSupply());
+            _nav = _totalPortfolioValue.scaledDiv(totalSupply());
         } else {
             _nav = 1e18;
         }
@@ -231,7 +230,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
-            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].mul(_BPTPrices[i]));
+            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].scaledMul(_BPTPrices[i]));
         }
 
         if (_totalPortfolioValue == 0) {
@@ -241,7 +240,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         _weights = new uint256[](_BPTPrices.length);
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
-            _weights[i] = _BPTAmounts[i].mul(_BPTPrices[i]).div(_totalPortfolioValue);
+            _weights[i] = _BPTAmounts[i].scaledMul(_BPTPrices[i]).scaledDiv(_totalPortfolioValue);
         }
 
         return (_weights, _totalPortfolioValue);
@@ -661,7 +660,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _currentWeights = _idealWeights;
         }
 
-        _nav = nav(_BPTCurrentAmounts, _currentBPTPrices, _totalPortfolioValue);
+        _nav = nav(_totalPortfolioValue);
 
         (_hypotheticalWeights, ) = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
@@ -722,7 +721,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             weights._dollarValue = weights._dollarValue.add(
-                _amountsIn[i].mul(_currentBPTPrices[i])
+                _amountsIn[i].scaledMul(_currentBPTPrices[i])
             );
         }
 
@@ -849,7 +848,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         uint256 _dollarValueOut = 0;
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].mul(_currentBPTPrices[i]));
+            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
         }
 
         return
@@ -910,7 +909,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _dollarValueOut = 0;
 
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].mul(_currentBPTPrices[i]));
+            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
         }
 
         FlowLogger memory flowLogger;
@@ -972,8 +971,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _memoryParam = memoryParam;
 
         if (_lastSeenBlock < _currentBlock) {
-            _inflowHistory = _inflowHistory.mul(_memoryParam**(_currentBlock.sub(_lastSeenBlock)));
-            _outflowHistory = _outflowHistory.mul(
+            _inflowHistory = _inflowHistory.scaledMul(_memoryParam**(_currentBlock.sub(_lastSeenBlock)));
+            _outflowHistory = _outflowHistory.scaledMul(
                 _memoryParam**(_currentBlock.sub(_lastSeenBlock))
             );
         }

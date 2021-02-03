@@ -53,11 +53,11 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
         } else {
             // gyroAmount = dollarValueIn * (1 - eps_inflowHistory) or min of 0
             uint256 _eps = 1e11;
-            uint256 _scaling = _eps.mul(_inflowHistory);
+            uint256 _scaling = _eps.scaledMul(_inflowHistory);
             if (_scaling >= _one) {
                 _gyroAmount = 0;
             } else {
-                _gyroAmount = _dollarValueIn.mul(_one.sub(_scaling));
+                _gyroAmount = _dollarValueIn.scaledMul(_one.sub(_scaling));
             }
         }
         _gyroAmount = _dollarValueIn;
@@ -72,8 +72,8 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
         if (_nav < 1e18) {
             // gyroAmount = dollarValueOut * (1 + eps*outflowHistory)
             uint256 _eps = 1e11;
-            uint256 _scaling = _eps.mul(_outflowHistory).add(1e18);
-            _gyroAmount = _dollarValueOut.mul(_scaling);
+            uint256 _scaling = _eps.scaledMul(_outflowHistory).add(1e18);
+            _gyroAmount = _dollarValueOut.scaledMul(_scaling);
         } else {
             _gyroAmount = _dollarValueOut;
         }
@@ -135,7 +135,7 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
             // console.log("_k", _k, "_weightedProd", _weightedProd);
         }
 
-        uint256 result = _k.mul(_weightedProd).div(_bptSupply);
+        uint256 result = _k.scaledMul(_weightedProd).scaledDiv(_bptSupply);
         // console.log("final _weightedProd", _weightedProd, "supply", _bptSupply);
         console.log("final _k", _k, "result", result);
         return result;
