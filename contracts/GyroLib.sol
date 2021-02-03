@@ -73,7 +73,7 @@ contract GyroLib {
         return _amountRedeemed;
     }
 
-    function estimateUnderlyingTokens(address[] memory _tokensIn, uint256[] memory _amountsIn)
+    function estimateMintedGyro(address[] memory _tokensIn, uint256[] memory _amountsIn)
         public
         view
         returns (uint256)

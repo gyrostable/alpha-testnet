@@ -32,7 +32,7 @@ describe("GyroLib", () => {
     );
   });
 
-  describe("estimateUnderlyingTokens", () => {
+  describe("estimateMintedGyro", () => {
     const pools = [
       "0xbC2E60B7BCCFe5DB97984b534AA997932438051F",
       "0xA090B79EeD1301f5CD5fDC16476DBD702cfF2401",
@@ -42,7 +42,7 @@ describe("GyroLib", () => {
       const amounts = [scale(10), scale(20)];
       const msg = "failed estimateDeposit";
       await externalRouter.mock.estimateDeposit.withArgs(pools, amounts).revertsWithReason(msg);
-      await expect(gyroLib.estimateUnderlyingTokens(pools, amounts)).to.be.revertedWith(msg);
+      await expect(gyroLib.estimateMintedGyro(pools, amounts)).to.be.revertedWith(msg);
     });
 
     it("should reorder pools", async () => {
@@ -52,7 +52,7 @@ describe("GyroLib", () => {
       await gyroFund.mock.poolAddresses.returns(pools);
       const expectedAmounts = [scale(15), scale(30)];
       await gyroFund.mock.estimateMint.withArgs(pools, expectedAmounts).returns(scale(30));
-      const result = await gyroLib.estimateUnderlyingTokens([], []);
+      const result = await gyroLib.estimateMintedGyro([], []);
       expect(result.toString()).to.eq(scale(30).toString());
     });
   });
