@@ -51,7 +51,7 @@ contract GyroLib {
 
         uint256 _amountToRedeem = fund.estimateRedeem(_sortedAddresses, _sortedAmounts);
 
-        require(_amountToRedeem < _maxRedeemed, "too much slippage");
+        require(_amountToRedeem > _maxRedeemed, "too much slippage");
 
         require(
             fund.transferFrom(msg.sender, address(this), _amountToRedeem),
