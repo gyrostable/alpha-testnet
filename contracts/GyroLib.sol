@@ -43,11 +43,11 @@ contract GyroLib {
         uint256[] memory _amountsOut,
         uint256 _maxRedeemed
     ) public returns (uint256) {
-        (address[] memory _BPTokensOut, uint256[] memory _BPAmountsOut) =
+        (address[] memory _BPTokensIn, uint256[] memory _BPAmountsIn) =
             externalTokensRouter.estimateWithdraw(_tokensOut, _amountsOut);
 
         (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
-            sortBPTokenstoPools(_BPTokensOut, _BPAmountsOut);
+            sortBPTokenstoPools(_BPTokensIn, _BPAmountsIn);
 
         bool realRedeem = false;
         bool _launch;
@@ -72,8 +72,14 @@ contract GyroLib {
 
         uint256 _amountRedeemed = fund.redeem(_sortedAddresses, _sortedAmounts, _maxRedeemed);
 
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            IERC20(_BPTokensOut[i]).approve(address(externalTokensRouter), _BPAmountsOut[i]);
+        for (uint256 i = 0; i < _sortedAddresses.length; i++) {
+            require(
+                IERC20(_sortedAddresses[i]).approve(
+                    address(externalTokensRouter),
+                    _sortedAmounts[i]
+                ),
+                "failed to approve BPTokens"
+            );
         }
 
         externalTokensRouter.withdraw(_tokensOut, _amountsOut);

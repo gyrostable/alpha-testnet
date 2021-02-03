@@ -73,9 +73,9 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             uint256 amount = _amountsOut[i];
 
             BPool pool = BPool(choosePoolToDeposit(token, amount));
-            uint256 poolAmountOut = calcPoolInGivenSingleOut(pool, token, amount);
+            uint256 poolAmountIn = calcPoolInGivenSingleOut(pool, token, amount);
             _bpAddresses[i] = address(pool);
-            _bpAmounts[i] = poolAmountOut;
+            _bpAmounts[i] = poolAmountIn;
         }
         return (_bpAddresses, _bpAmounts);
     }
@@ -94,7 +94,7 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             bool success = pool.transferFrom(msg.sender, address(this), poolAmountIn);
             require(success, "failed to transfer BPT from sender to GryoRouter");
 
-            pool.exitswapExternAmountOut(token, amount, 0);
+            pool.exitswapExternAmountOut(token, amount, poolAmountIn);
 
             success = IERC20(token).transfer(msg.sender, amount);
             require(success, "failed to transfer token to sender");
