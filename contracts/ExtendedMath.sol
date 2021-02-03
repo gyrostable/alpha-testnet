@@ -54,4 +54,20 @@ library ExtendedMath {
     ) internal pure returns (uint256) {
         return a.mul(10**_decimals).div(b);
     }
+
+    function scaledPow(uint256 base, uint256 exp) internal pure returns (uint256) {
+        return scaledPow(base, exp, decimals);
+    }
+
+    function scaledPow(
+        uint256 base,
+        uint256 exp,
+        uint256 _decimals
+    ) internal pure returns (uint256) {
+        uint256 result = 1;
+        for (uint256 i = 0; i < exp; i) {
+            result = scaledMul(result, base, _decimals);
+        }
+        return result;
+    }
 }

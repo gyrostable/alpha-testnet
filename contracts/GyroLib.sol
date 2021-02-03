@@ -54,11 +54,16 @@ contract GyroLib {
 
         uint256 _amountToRedeem;
 
-        (_launch, _amountToRedeem,,,,, ) = fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, _maxRedeemed, realRedeem);
+        (_launch, _amountToRedeem, , , , , ) = fund.redeemChecksPass(
+            _sortedAddresses,
+            _sortedAmounts,
+            _maxRedeemed,
+            realRedeem
+        );
 
         require(_launch, "Not safe to launch");
 
-        require(_amountToRedeem > _maxRedeemed, "too much slippage");
+        require(_amountToRedeem <= _maxRedeemed, "too much slippage");
 
         require(
             fund.transferFrom(msg.sender, address(this), _amountToRedeem),
@@ -96,17 +101,21 @@ contract GyroLib {
 
         uint256 _amountToMint;
 
-        (_launch, _amountToMint,,,,, ) = fund.mintChecksPass(_sortedAddresses, _sortedAmounts, 10, realMint);
+        (_launch, _amountToMint, , , , , ) = fund.mintChecksPass(
+            _sortedAddresses,
+            _sortedAmounts,
+            10,
+            realMint
+        );
 
         return _amountToMint;
-
     }
 
-    function wouldMintChecksPass(address[] memory _tokensIn, uint256[] memory _amountsIn, uint256 _minGyroMinted)
-        public
-        view
-        returns (bool, uint256)
-    {
+    function wouldMintChecksPass(
+        address[] memory _tokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted
+    ) public view returns (bool, uint256) {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
 
@@ -118,17 +127,21 @@ contract GyroLib {
         uint256 errorCode;
         bool realMint = false;
 
-        (_launch, gyroToMint, errorCode,,,,   ) = fund.mintChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted, realMint );
+        (_launch, gyroToMint, errorCode, , , , ) = fund.mintChecksPass(
+            sortedAddresses,
+            sortedAmounts,
+            _minGyroMinted,
+            realMint
+        );
 
         return (_launch, errorCode);
-        
     }
 
-    function wouldRedeemChecksPass(address[] memory _tokensOut, uint256[] memory _amountsOut, uint256 _maxGyroRedeemed)
-        public
-        view
-        returns (bool, uint256)
-    {
+    function wouldRedeemChecksPass(
+        address[] memory _tokensOut,
+        uint256[] memory _amountsOut,
+        uint256 _maxGyroRedeemed
+    ) public view returns (bool, uint256) {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensOut, _amountsOut);
 
@@ -140,12 +153,15 @@ contract GyroLib {
         uint256 errorCode;
         bool realRedeem = false;
 
-        (_launch, gyroToRedeem, errorCode,,,,   ) = fund.redeemChecksPass(sortedAddresses, sortedAmounts, _maxGyroRedeemed, realRedeem);
+        (_launch, gyroToRedeem, errorCode, , , , ) = fund.redeemChecksPass(
+            sortedAddresses,
+            sortedAmounts,
+            _maxGyroRedeemed,
+            realRedeem
+        );
 
         return (_launch, errorCode);
-        
     }
-
 
     function estimateRedeemedGyro(address[] memory _tokensOut, uint256[] memory _amountsOut)
         public
@@ -163,7 +179,12 @@ contract GyroLib {
 
         uint256 _amountToRedeem;
 
-        (_launch, _amountToRedeem,,,,, ) = fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, 10, realRedeem);
+        (_launch, _amountToRedeem, , , , , ) = fund.redeemChecksPass(
+            _sortedAddresses,
+            _sortedAmounts,
+            10,
+            realRedeem
+        );
 
         return _amountToRedeem;
     }

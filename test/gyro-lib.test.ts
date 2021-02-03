@@ -51,7 +51,9 @@ describe("GyroLib", () => {
       await externalRouter.mock.estimateDeposit.returns(callPools, amounts);
       await gyroFund.mock.poolAddresses.returns(pools);
       const expectedAmounts = [scale(15), scale(30)];
-      await gyroFund.mock.estimateMint.withArgs(pools, expectedAmounts).returns(scale(30));
+      await gyroFund.mock.mintChecksPass
+        .withArgs(pools, expectedAmounts, 10, false)
+        .returns(false, scale(30), 0, 0, 0, 0, 0);
       const result = await gyroLib.estimateMintedGyro([], []);
       expect(result.toString()).to.eq(scale(30).toString());
     });

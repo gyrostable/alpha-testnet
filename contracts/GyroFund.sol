@@ -21,12 +21,6 @@ interface GyroFund is IERC20 {
         uint256 _minGyroMinted
     ) external returns (uint256);
 
-    function mintTest(
-        address[] memory _BPTokensIn,
-        uint256[] memory _amountsIn,
-        uint256 _gyroToMint
-    ) external returns (uint256);
-
     function redeem(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
@@ -213,7 +207,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function calculateImpliedPoolWeights(uint256[] memory _BPTPrices)
-        public
+        internal
         view
         returns (uint256[] memory)
     {
@@ -247,7 +241,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _newWeights;
     }
 
-    function nav(uint256 _totalPortfolioValue) public view returns (uint256 _nav) {
+    function nav(uint256 _totalPortfolioValue) internal view returns (uint256 _nav) {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0) {
             _nav = _totalPortfolioValue.scaledDiv(totalSupply());
@@ -259,7 +253,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function calculatePortfolioWeights(uint256[] memory _BPTAmounts, uint256[] memory _BPTPrices)
-        public
+        internal
         pure
         returns (uint256[] memory, uint256)
     {
@@ -286,7 +280,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function checkStablecoinHealth(uint256 stablecoinPrice, address stablecoinAddress)
-        public
+        internal
         pure
         returns (bool)
     {
@@ -305,7 +299,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _stablecoinHealthy;
     }
 
-    function absValueSub(uint256 _number1, uint256 _number2) public pure returns (uint256) {
+    function absValueSub(uint256 _number1, uint256 _number2) internal pure returns (uint256) {
         if (_number1 >= _number2) {
             return _number1.sub(_number2);
         } else {
@@ -313,7 +307,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
     }
 
-    function getPrice(address _token, bytes32 _tokenSymbol) public view returns (uint256) {
+    function getPrice(address _token, bytes32 _tokenSymbol) internal view returns (uint256) {
         return
             PriceOracle(_tokenAddressToProperties[_token].oracleAddress).getPrice(
                 bytes32ToString(_tokenSymbol)
@@ -390,7 +384,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _poolIndex,
         address[] memory _BPTokensIn,
         bool _allPoolsHealthy
-    ) public view returns (bool, bool) {
+    ) internal view returns (bool, bool) {
         bool _poolHealthy = true;
 
         BPool _bPool = BPool(poolProperties[_poolIndex].poolAddress);
@@ -419,7 +413,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address[] memory _BPTokensIn,
         uint256[] memory _hypotheticalWeights,
         uint256[] memory _idealWeights
-    ) public view returns (bool, bool[] memory) {
+    ) internal view returns (bool, bool[] memory) {
         bool _allPoolsWithinEpsilon = true;
         bool[] memory _poolsWithinEpsilon = new bool[](_BPTokensIn.length);
 
@@ -444,7 +438,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _idealWeights,
         uint256[] memory _allUnderlyingPrices
     )
-        public
+        internal
         view
         returns (
             bool,
@@ -485,7 +479,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _hypotheticalWeights,
         uint256[] memory _currentWeights,
         bool[] memory _poolsWithinEpsilon
-    ) public pure returns (bool _anyCheckFail) {
+    ) internal pure returns (bool _anyCheckFail) {
         //Check that amount above epsilon is decreasing
         //Check that unhealthy pools have input weight below ideal weight
         //If both true, then mint
@@ -517,7 +511,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
     }
 
-    function checkBPTokenOrder(address[] memory _BPTokensIn) public view returns (bool _correct) {
+    function checkBPTokenOrder(address[] memory _BPTokensIn) internal view returns (bool _correct) {
         require(
             _BPTokensIn.length == poolProperties.length,
             "bptokens do not have the correct number of addreses"
@@ -539,7 +533,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         bool[] memory _inputPoolHealth,
         uint256[] memory _inputBPTWeights,
         uint256[] memory _idealWeights
-    ) public pure returns (bool _launch) {
+    ) internal pure returns (bool _launch) {
         bool _unhealthyMovesTowardIdeal = true;
         for (uint256 i; i < _BPTokensIn.length; i++) {
             if (!_inputPoolHealth[i]) {
@@ -563,7 +557,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsIn,
         uint256[] memory _currentBPTPrices,
         uint256[] memory _currentWeights
-    ) public view returns (bool _launch) {
+    ) internal view returns (bool _launch) {
         _launch = false;
 
         PoolStatus memory poolStatus;
@@ -624,7 +618,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _hypotheticalWeights,
         uint256[] memory _idealWeights,
         uint256[] memory _currentWeights
-    ) public view returns (bool) {
+    ) internal view returns (bool) {
         bool _launch = false;
         bool _allPoolsWithinEpsilon;
         bool[] memory _poolsWithinEpsilon = new bool[](_BPTokensOut.length);
@@ -704,22 +698,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         (_hypotheticalWeights, ) = calculatePortfolioWeights(_BPTNewAmounts, _currentBPTPrices);
 
         return (_idealWeights, _currentWeights, _hypotheticalWeights, _nav, _totalPortfolioValue);
-    }
-
-    function mintTest(
-        address[] memory _BPTokensIn,
-        uint256[] memory _amountsIn,
-        uint256 _gyroToMint
-    ) public override returns (uint256) {
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            bool success =
-                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
-            require(success, "failed to transfer tokens, check allowance");
-        }
-
-        _mint(msg.sender, _gyroToMint);
-        emit Mint(msg.sender, _gyroToMint);
-        return _gyroToMint;
     }
 
     //_amountsIn in should have a zero index if nothing has been submitted for a particular token
@@ -1050,7 +1028,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function initializeFlowLogger()
-        public
+        internal
         view
         returns (
             uint256 _inflowHistory,
@@ -1068,10 +1046,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         if (_lastSeenBlock < _currentBlock) {
             _inflowHistory = _inflowHistory.scaledMul(
-                _memoryParam**(_currentBlock.sub(_lastSeenBlock))
+                _memoryParam.scaledPow(_currentBlock.sub(_lastSeenBlock))
             );
             _outflowHistory = _outflowHistory.scaledMul(
-                _memoryParam**(_currentBlock.sub(_lastSeenBlock))
+                _memoryParam.scaledPow(_currentBlock.sub(_lastSeenBlock))
             );
         }
 
@@ -1085,7 +1063,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _gyroRedeemed,
         uint256 _currentBlock,
         uint256 _lastSeenBlock
-    ) public {
+    ) internal {
         if (_gyroMinted > 0) {
             inflowHistory = _inflowHistory.add(_gyroMinted);
         }
