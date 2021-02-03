@@ -25,7 +25,7 @@ interface GyroFund is IERC20 {
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
         uint256 _gyroToMint
-    ) external returns (uint256 );
+    ) external returns (uint256);
 
     function redeem(
         address[] memory _BPTokensOut,
@@ -197,7 +197,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         for (uint256 i = 0; i < _BPTPrices.length; i++) {
-            _weightedReturns[i] = _BPTPrices[i].scaledDiv(_initPoolPrices[i]).scaledMul(_initWeights[i]);
+            _weightedReturns[i] = _BPTPrices[i].scaledDiv(_initPoolPrices[i]).scaledMul(
+                _initWeights[i]
+            );
         }
 
         uint256 _returnsSum = 0;
@@ -211,12 +213,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         return _newWeights;
     }
-    
-    function nav(uint256 _totalPortfolioValue)
-        public
-        view
-        returns (uint256 _nav)
-    {
+
+    function nav(uint256 _totalPortfolioValue) public view returns (uint256 _nav) {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0) {
             _nav = _totalPortfolioValue.scaledDiv(totalSupply());
@@ -236,7 +234,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
-            _totalPortfolioValue = _totalPortfolioValue.add(_BPTAmounts[i].scaledMul(_BPTPrices[i]));
+            _totalPortfolioValue = _totalPortfolioValue.add(
+                _BPTAmounts[i].scaledMul(_BPTPrices[i])
+            );
         }
 
         if (_totalPortfolioValue == 0) {
@@ -677,7 +677,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
         uint256 _gyroToMint
-    ) public override returns (uint256 ) {
+    ) public override returns (uint256) {
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool success =
                 IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
@@ -685,6 +685,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         _mint(msg.sender, _gyroToMint);
+        emit Mint(msg.sender, _gyroToMint);
         return _gyroToMint;
     }
 
@@ -954,11 +955,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         for (uint256 i = 0; i < _amountsOut.length; i++) {
             require(_gyroRedeemed <= _maxGyroRedeemed, "too much slippage");
             bool success =
-                IERC20(_amountsOut[i]).transferFrom(
-                    address(gyroRouter),
-                    msg.sender,
-                    _amountsOut[i]
-                );
+                IERC20(_BPTokensOut[i]).transferFrom(address(this), msg.sender, _amountsOut[i]);
             require(success, "failed to transfer tokens");
         }
 
@@ -992,7 +989,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _memoryParam = memoryParam;
 
         if (_lastSeenBlock < _currentBlock) {
-            _inflowHistory = _inflowHistory.scaledMul(_memoryParam**(_currentBlock.sub(_lastSeenBlock)));
+            _inflowHistory = _inflowHistory.scaledMul(
+                _memoryParam**(_currentBlock.sub(_lastSeenBlock))
+            );
             _outflowHistory = _outflowHistory.scaledMul(
                 _memoryParam**(_currentBlock.sub(_lastSeenBlock))
             );
