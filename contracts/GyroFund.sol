@@ -49,6 +49,14 @@ interface GyroFund is IERC20 {
                             external
                             view
                             returns(bool, string memory);
+
+
+    function wouldRedeemChecksPass(address[] memory _BPTokensOut, 
+                            uint256[] memory _amountsOut, 
+                            uint256 _maxGyroRedeemed) 
+                            external
+                            view
+                            returns(bool, string memory);
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -796,6 +804,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                             uint256[] memory _amountsIn, 
                             uint256 _minGyroMinted) 
                             public
+                            override
                             view
                             returns(bool, string memory) {
 
@@ -875,6 +884,86 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
 
     }
+
+    function wouldRedeemChecksPass(
+        address[] memory _BPTokensOut,
+        uint256[] memory _amountsOut,
+        uint256 _maxGyroRedeemed
+        ) public override view returns (bool, string memory) {
+
+        require(
+            _BPTokensOut.length == _amountsOut.length,
+            "tokensIn and valuesIn should have the same number of elements"
+        );
+
+        //Filter 1: Require that the tokens are supported and in correct order
+        require(
+            checkBPTokenOrder(_BPTokensOut),
+            "Input tokens in wrong order or contains invalid tokens"
+        );
+
+        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            _zeroArray[i] = 0;
+        }
+
+        Weights memory weights;
+
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+
+        (
+            weights._idealWeights,
+            weights._currentWeights,
+            weights._hypotheticalWeights,
+            weights._nav,
+            weights._totalPortfolioValue
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
+
+        bool _launch =
+            safeToRedeem(
+                _BPTokensOut,
+                weights._hypotheticalWeights,
+                weights._idealWeights,
+                weights._currentWeights
+            );
+
+
+
+        if (!_launch) {
+            string memory errorMessage = "This combination of tokens would move gyroscope weights too far from target.";
+            return (false, errorMessage);
+        }
+
+        uint256 _dollarValueOut = 0;
+
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
+        }
+
+        FlowLogger memory flowLogger;
+        (
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        ) = initializeFlowLogger();
+
+        uint256 _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(
+            _dollarValueOut,
+            flowLogger._outflowHistory,
+            weights._nav
+        );
+
+        if (_gyroRedeemed > _maxGyroRedeemed) {
+            string memory errorMessage = "Too much slippage is expected";
+            return (false, errorMessage);
+        } else {
+            string memory happyMessage = "Minting checks pass.";
+            return (true, happyMessage);
+        }
+        }
 
     function estimateMint(address[] memory _BPTokensIn, uint256[] memory _amountsIn)
         public
@@ -1041,12 +1130,13 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._nav
         );
 
+        require(_gyroRedeemed <= _maxGyroRedeemed, "too much slippage");
+
         _burn(msg.sender, _gyroRedeemed);
 
         gyroRouter.withdraw(_BPTokensOut, _amountsOut);
 
         for (uint256 i = 0; i < _amountsOut.length; i++) {
-            require(_gyroRedeemed <= _maxGyroRedeemed, "too much slippage");
             bool success =
                 IERC20(_BPTokensOut[i]).transferFrom(address(this), msg.sender, _amountsOut[i]);
             require(success, "failed to transfer tokens");
