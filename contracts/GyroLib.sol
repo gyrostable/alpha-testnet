@@ -49,7 +49,14 @@ contract GyroLib {
         (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(_BPTokensOut, _BPAmountsOut);
 
-        uint256 _amountToRedeem = fund.estimateRedeem(_sortedAddresses, _sortedAmounts);
+        bool realRedeem = false;
+        bool _launch;
+
+        uint256 _amountToRedeem;
+
+        (_launch, _amountToRedeem,,,,, ) = fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, _maxRedeemed, realRedeem);
+
+        require(_launch, "Not safe to launch");
 
         require(_amountToRedeem > _maxRedeemed, "too much slippage");
 
@@ -81,16 +88,24 @@ contract GyroLib {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
 
-        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
+        (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        return fund.estimateMint(sortedAddresses, sortedAmounts);
+        bool realMint = false;
+        bool _launch;
+
+        uint256 _amountToMint;
+
+        (_launch, _amountToMint,,,,, ) = fund.mintChecksPass(_sortedAddresses, _sortedAmounts, 10, realMint);
+
+        return _amountToMint;
+
     }
 
     function wouldMintChecksPass(address[] memory _tokensIn, uint256[] memory _amountsIn, uint256 _minGyroMinted)
         public
         view
-        returns (bool, string memory)
+        returns (bool, uint256)
     {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
@@ -98,22 +113,36 @@ contract GyroLib {
         (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        return fund.wouldMintChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted);
+        uint256 gyroToMint;
+        bool _launch;
+        uint256 errorCode;
+        bool realMint = false;
+
+        (_launch, gyroToMint, errorCode,,,,   ) = fund.mintChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted, realMint );
+
+        return (_launch, errorCode);
         
     }
 
-    function wouldRedeemChecksPass(address[] memory _tokensIn, uint256[] memory _amountsIn, uint256 _minGyroMinted)
+    function wouldRedeemChecksPass(address[] memory _tokensOut, uint256[] memory _amountsOut, uint256 _maxGyroRedeemed)
         public
         view
-        returns (bool, string memory)
+        returns (bool, uint256)
     {
         (address[] memory bptTokens, uint256[] memory amounts) =
-            externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
+            externalTokensRouter.estimateDeposit(_tokensOut, _amountsOut);
 
         (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        return fund.wouldRedeemChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted);
+        uint256 gyroToRedeem;
+        bool _launch;
+        uint256 errorCode;
+        bool realRedeem = false;
+
+        (_launch, gyroToRedeem, errorCode,,,,   ) = fund.redeemChecksPass(sortedAddresses, sortedAmounts, _maxGyroRedeemed, realRedeem);
+
+        return (_launch, errorCode);
         
     }
 
@@ -126,10 +155,17 @@ contract GyroLib {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateWithdraw(_tokensOut, _amountsOut);
 
-        (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
+        (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        return fund.estimateRedeem(sortedAddresses, sortedAmounts);
+        bool realRedeem = false;
+        bool _launch;
+
+        uint256 _amountToRedeem;
+
+        (_launch, _amountToRedeem,,,,, ) = fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, 10, realRedeem);
+
+        return _amountToRedeem;
     }
 
     function getSupportedTokens() external view returns (address[] memory) {

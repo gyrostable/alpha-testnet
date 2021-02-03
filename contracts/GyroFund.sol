@@ -33,30 +33,41 @@ interface GyroFund is IERC20 {
         uint256 _maxGyroRedeemed
     ) external returns (uint256);
 
-    function estimateMint(address[] memory _tokensIn, uint256[] memory _amountsIn)
+    function mintChecksPass(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted,
+        bool realMint
+    )
         external
         view
-        returns (uint256);
+        returns (
+            bool,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        );
 
-    function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
+    function redeemChecksPass(
+        address[] memory _BPTokensOut,
+        uint256[] memory _amountsOut,
+        uint256 _maxGyroRedeemed,
+        bool realRedeem
+    )
         external
         view
-        returns (uint256);
-
-    function wouldMintChecksPass(address[] memory _BPTokensIn, 
-                            uint256[] memory _amountsIn, 
-                            uint256 _minGyroMinted) 
-                            external
-                            view
-                            returns(bool, string memory);
-
-
-    function wouldRedeemChecksPass(address[] memory _BPTokensOut, 
-                            uint256[] memory _amountsOut, 
-                            uint256 _maxGyroRedeemed) 
-                            external
-                            view
-                            returns(bool, string memory);
+        returns (
+            bool,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        );
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -96,6 +107,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _nav;
         uint256 _dollarValue;
         uint256 _totalPortfolioValue;
+        bool _launch;
+        uint256 errorCode;
+        uint256[] _zeroArray;
+        uint256 gyroAmount;
     }
 
     struct FlowLogger {
@@ -119,6 +134,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     uint256 inflowHistory;
     uint256 outflowHistory;
     uint256 memoryParam;
+
+    uint256 constant WOULD_UNBALANCE_GYROSCOPE = 1;
+    uint256 constant TOO_MUCH_SLIPPAGE = 2;
 
     constructor(
         uint256 _portfolioWeightEpsilon,
@@ -319,7 +337,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return string(bytesStringTrimmed);
     }
 
-    function getAllTokenPrices() public view returns (uint256[] memory) {
+    function getAllTokenPrices() internal view returns (uint256[] memory) {
         uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
             address _tokenAddress = underlyingTokenAddresses[i];
@@ -336,7 +354,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices)
-        public
+        internal
         view
         returns (uint256[] memory)
     {
@@ -500,7 +518,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     }
 
     function checkBPTokenOrder(address[] memory _BPTokensIn) public view returns (bool _correct) {
-
         require(
             _BPTokensIn.length == poolProperties.length,
             "bptokens do not have the correct number of addreses"
@@ -513,7 +530,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                 break;
             }
         }
-
 
         return _correct;
     }
@@ -652,7 +668,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsIn,
         uint256[] memory _amountsOut
     )
-        public
+        internal
         view
         returns (
             uint256[] memory _idealWeights,
@@ -713,72 +729,22 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
     ) public override returns (uint256 amountToMint) {
-        require(
-            _BPTokensIn.length == _amountsIn.length,
-            "tokensIn and valuesIn should have the same number of elements"
-        );
-
-        //Filter 1: Require that the tokens are supported and in correct order
-        bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
-        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
-
-        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _zeroArray[i] = 0;
-        }
-
-        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
-
-        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
-
-        Weights memory weights;
-
-        (
-            weights._idealWeights,
-            weights._currentWeights,
-            weights._hypotheticalWeights,
-            weights._nav,
-            weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
-
-        bool _launch =
-            safeToMint(
-                _BPTokensIn,
-                weights._hypotheticalWeights,
-                weights._idealWeights,
-                _allUnderlyingPrices,
-                _amountsIn,
-                _currentBPTPrices,
-                weights._currentWeights
-            );
-
-        if (!_launch) {
-            revert("Too windy for launch");
-        }
-
-        weights._dollarValue = 0;
-
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            weights._dollarValue = weights._dollarValue.add(
-                _amountsIn[i].scaledMul(_currentBPTPrices[i])
-            );
-        }
+        bool realMint = true;
 
         FlowLogger memory flowLogger;
+
+        bool _launch;
+        uint256 errorCode;
+
         (
+            _launch,
+            amountToMint,
+            errorCode,
             flowLogger._inflowHistory,
             flowLogger._outflowHistory,
             flowLogger._currentBlock,
             flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
-
-        amountToMint = gyroPriceOracle.getAmountToMint(
-            weights._dollarValue,
-            flowLogger._inflowHistory,
-            weights._nav
-        );
-
-        require(amountToMint >= _minGyroMinted, "too much slippage");
+        ) = mintChecksPass(_BPTokensIn, _amountsIn, _minGyroMinted, realMint);
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool success =
@@ -800,14 +766,45 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return amountToMint;
     }
 
-    function wouldMintChecksPass(address[] memory _BPTokensIn, 
-                            uint256[] memory _amountsIn, 
-                            uint256 _minGyroMinted) 
-                            public
-                            override
-                            view
-                            returns(bool, string memory) {
+    function mintChecksPass(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted,
+        bool realMint
+    )
+        public
+        view
+        override
+        returns (
+            bool,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (Weights memory weights, FlowLogger memory flowLogger) =
+            mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted, realMint);
 
+        return (
+            weights._launch,
+            weights.gyroAmount,
+            weights.errorCode,
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        );
+    }
+
+    function mintChecksPassInternal(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted,
+        bool realMint
+    ) internal view returns (Weights memory, FlowLogger memory) {
         require(
             _BPTokensIn.length == _amountsIn.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -817,16 +814,16 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
         require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
 
-        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _zeroArray[i] = 0;
-        }
-
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
 
         uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
 
         Weights memory weights;
+
+        weights._zeroArray = new uint256[](_BPTokensIn.length);
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            weights._zeroArray[i] = 0;
+        }
 
         (
             weights._idealWeights,
@@ -834,22 +831,26 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._hypotheticalWeights,
             weights._nav,
             weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, weights._zeroArray);
 
-        bool _launch =
-            safeToMint(
-                _BPTokensIn,
-                weights._hypotheticalWeights,
-                weights._idealWeights,
-                _allUnderlyingPrices,
-                _amountsIn,
-                _currentBPTPrices,
-                weights._currentWeights
+        weights._launch = safeToMint(
+            _BPTokensIn,
+            weights._hypotheticalWeights,
+            weights._idealWeights,
+            _allUnderlyingPrices,
+            _amountsIn,
+            _currentBPTPrices,
+            weights._currentWeights
+        );
+
+        weights.errorCode = 0;
+        if (realMint) {
+            require(
+                weights._launch,
+                "This combination of tokens would move gyroscope weights too far from target."
             );
-
-        if (!_launch) {
-            string memory errorMessage = "This combination of tokens would move gyroscope weights too far from target.";
-            return (false, errorMessage);
+        } else {
+            weights.errorCode |= WOULD_UNBALANCE_GYROSCOPE;
         }
 
         weights._dollarValue = 0;
@@ -868,29 +869,62 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        uint256 amountToMint = gyroPriceOracle.getAmountToMint(
+        weights.gyroAmount = gyroPriceOracle.getAmountToMint(
             weights._dollarValue,
             flowLogger._inflowHistory,
             weights._nav
         );
 
-        if (amountToMint < _minGyroMinted) {
-            string memory errorMessage = "Too much slippage is expected";
-            return (false, errorMessage);
+        if (realMint) {
+            require(weights.gyroAmount >= _minGyroMinted, "Too much slippage is expected");
         } else {
-            string memory happyMessage = "Minting checks pass.";
-            return (true, happyMessage);
+            if (weights.gyroAmount < _minGyroMinted) {
+                weights._launch = false;
+                weights.errorCode |= TOO_MUCH_SLIPPAGE;
+            }
         }
 
-
+        return (weights, flowLogger);
     }
 
-    function wouldRedeemChecksPass(
+    function redeemChecksPass(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
-        uint256 _maxGyroRedeemed
-        ) public override view returns (bool, string memory) {
+        uint256 _maxGyroRedeemed,
+        bool realRedeem
+    )
+        public
+        view
+        override
+        returns (
+            bool,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (Weights memory weights, FlowLogger memory flowLogger) =
+            redeemChecksPassInternal(_BPTokensOut, _amountsOut, _maxGyroRedeemed, realRedeem);
+        return (
+            weights._launch,
+            weights.gyroAmount,
+            weights.errorCode,
+            flowLogger._inflowHistory,
+            flowLogger._outflowHistory,
+            flowLogger._currentBlock,
+            flowLogger._lastSeenBlock
+        );
+    }
 
+    function redeemChecksPassInternal(
+        address[] memory _BPTokensOut,
+        uint256[] memory _amountsOut,
+        uint256 _maxGyroRedeemed,
+        bool realRedeem
+    ) internal view returns (Weights memory, FlowLogger memory) {
         require(
             _BPTokensOut.length == _amountsOut.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -902,12 +936,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             "Input tokens in wrong order or contains invalid tokens"
         );
 
-        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _zeroArray[i] = 0;
-        }
-
         Weights memory weights;
+
+        weights._zeroArray = new uint256[](_BPTokensOut.length);
+        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
+            weights._zeroArray[i] = 0;
+        }
 
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
 
@@ -919,27 +953,31 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._hypotheticalWeights,
             weights._nav,
             weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
+        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, weights._zeroArray, _amountsOut);
 
-        bool _launch =
-            safeToRedeem(
-                _BPTokensOut,
-                weights._hypotheticalWeights,
-                weights._idealWeights,
-                weights._currentWeights
+        weights._launch = safeToRedeem(
+            _BPTokensOut,
+            weights._hypotheticalWeights,
+            weights._idealWeights,
+            weights._currentWeights
+        );
+
+        weights.errorCode = 0;
+        if (realRedeem) {
+            require(
+                weights._launch,
+                "This combination of tokens would move gyroscope weights too far from target."
             );
-
-
-
-        if (!_launch) {
-            string memory errorMessage = "This combination of tokens would move gyroscope weights too far from target.";
-            return (false, errorMessage);
+        } else {
+            weights.errorCode |= WOULD_UNBALANCE_GYROSCOPE;
         }
 
-        uint256 _dollarValueOut = 0;
+        weights._dollarValue = 0;
 
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
+            weights._dollarValue = weights._dollarValue.add(
+                _amountsOut[i].scaledMul(_currentBPTPrices[i])
+            );
         }
 
         FlowLogger memory flowLogger;
@@ -950,117 +988,22 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         ) = initializeFlowLogger();
 
-        uint256 _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(
-            _dollarValueOut,
+        weights.gyroAmount = gyroPriceOracle.getAmountToRedeem(
+            weights._dollarValue,
             flowLogger._outflowHistory,
             weights._nav
         );
 
-        if (_gyroRedeemed > _maxGyroRedeemed) {
-            string memory errorMessage = "Too much slippage is expected";
-            return (false, errorMessage);
+        if (realRedeem) {
+            require(weights.gyroAmount <= _maxGyroRedeemed, "Too much slippage is expected");
         } else {
-            string memory happyMessage = "Minting checks pass.";
-            return (true, happyMessage);
-        }
-        }
-
-    function estimateMint(address[] memory _BPTokensIn, uint256[] memory _amountsIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        //Filter 1: Require that the tokens are supported and in correct order
-        bool _orderCorrect = checkBPTokenOrder(_BPTokensIn);
-        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
-
-        FlowLogger memory flowLogger;
-        (
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
-
-        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
-
-        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
-
-        uint256[] memory _zeroArray = new uint256[](_BPTokensIn.length);
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _zeroArray[i] = 0;
+            if (weights.gyroAmount > _maxGyroRedeemed) {
+                weights._launch = false;
+                weights.errorCode |= TOO_MUCH_SLIPPAGE;
+            }
         }
 
-        Weights memory weights;
-        (
-            weights._idealWeights,
-            weights._currentWeights,
-            weights._hypotheticalWeights,
-            weights._nav,
-            weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, _zeroArray);
-
-        uint256 _dollarValueIn = 0;
-        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            _dollarValueIn = _dollarValueIn.add(_amountsIn[i].scaledMul(_currentBPTPrices[i]));
-        }
-
-        return
-            gyroPriceOracle.getAmountToMint(
-                _dollarValueIn,
-                flowLogger._inflowHistory,
-                weights._nav
-            );
-    }
-
-    function estimateRedeem(address[] memory _BPTokensOut, uint256[] memory _amountsOut)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        //Filter 1: Require that the tokens are supported and in correct order
-        bool _orderCorrect = checkBPTokenOrder(_BPTokensOut);
-        require(_orderCorrect, "Input tokens in wrong order or contains invalid tokens");
-
-        FlowLogger memory flowLogger;
-        (
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
-
-        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
-
-        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
-
-        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _zeroArray[i] = 0;
-        }
-
-        Weights memory weights;
-        (
-            weights._idealWeights,
-            weights._currentWeights,
-            weights._hypotheticalWeights,
-            weights._nav,
-            weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _amountsOut, _zeroArray);
-
-        uint256 _dollarValueOut = 0;
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
-        }
-
-        return
-            gyroPriceOracle.getAmountToRedeem(
-                _dollarValueOut,
-                flowLogger._outflowHistory,
-                weights._nav
-            );
+        return (weights, flowLogger);
     }
 
     function redeem(
@@ -1068,69 +1011,21 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsOut,
         uint256 _maxGyroRedeemed
     ) public override returns (uint256 _gyroRedeemed) {
-        require(
-            _BPTokensOut.length == _amountsOut.length,
-            "tokensIn and valuesIn should have the same number of elements"
-        );
-
-        //Filter 1: Require that the tokens are supported and in correct order
-        require(
-            checkBPTokenOrder(_BPTokensOut),
-            "Input tokens in wrong order or contains invalid tokens"
-        );
-
-        uint256[] memory _zeroArray = new uint256[](_BPTokensOut.length);
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _zeroArray[i] = 0;
-        }
-
-        Weights memory weights;
-
-        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
-
-        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
-
-        (
-            weights._idealWeights,
-            weights._currentWeights,
-            weights._hypotheticalWeights,
-            weights._nav,
-            weights._totalPortfolioValue
-        ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, _zeroArray, _amountsOut);
-
-        bool _launch =
-            safeToRedeem(
-                _BPTokensOut,
-                weights._hypotheticalWeights,
-                weights._idealWeights,
-                weights._currentWeights
-            );
-
-        if (!_launch) {
-            revert("Too windy for launch.");
-        }
-
-        uint256 _dollarValueOut = 0;
-
-        for (uint256 i = 0; i < _BPTokensOut.length; i++) {
-            _dollarValueOut = _dollarValueOut.add(_amountsOut[i].scaledMul(_currentBPTPrices[i]));
-        }
+        bool realRedeem = true;
+        bool _launch;
+        uint256 errorCode;
 
         FlowLogger memory flowLogger;
+
         (
+            _launch,
+            _gyroRedeemed,
+            errorCode,
             flowLogger._inflowHistory,
             flowLogger._outflowHistory,
             flowLogger._currentBlock,
             flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
-
-        _gyroRedeemed = gyroPriceOracle.getAmountToRedeem(
-            _dollarValueOut,
-            flowLogger._outflowHistory,
-            weights._nav
-        );
-
-        require(_gyroRedeemed <= _maxGyroRedeemed, "too much slippage");
+        ) = redeemChecksPass(_BPTokensOut, _amountsOut, _maxGyroRedeemed, realRedeem);
 
         _burn(msg.sender, _gyroRedeemed);
 
