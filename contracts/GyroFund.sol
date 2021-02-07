@@ -741,6 +741,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             flowLogger._lastSeenBlock
         );
 
+        emit Mint(msg.sender, amountToMint);
+
         return amountToMint;
     }
 
@@ -1015,7 +1017,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             require(success, "failed to transfer tokens");
         }
 
-        // emit Redeem(msg.sender, _gyroRedeemed);
+        emit Redeem(msg.sender, _gyroRedeemed);
         finalizeFlowLogger(
             flowLogger._inflowHistory,
             flowLogger._outflowHistory,
