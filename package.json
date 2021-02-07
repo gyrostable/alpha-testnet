@@ -1,7 +1,9 @@
 {
   "name": "@gyrostable/core",
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "main": "./dist/gyro-core.bundle.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "description": "The Gyroscope Dollar core contracts",
   "devDependencies": {
@@ -38,8 +40,7 @@
     "ethers": "5.0.26"
   },
   "files": [
-    "artifacts/deployment.json",
-    "typechain"
+    "dist"
   ],
   "scripts": {
     "build": "run-s build:solidity build:metadata build:js",
