@@ -71,9 +71,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     using SafeMath for uint256;
     using ExtendedMath for uint256;
 
-    GyroPriceOracle gyroPriceOracle;
-    GyroRouter gyroRouter;
-    PriceOracle priceOracle;
+    GyroPriceOracle public gyroPriceOracle;
+    GyroRouter public gyroRouter;
+    PriceOracle public priceOracle;
 
     struct TokenProperties {
         address oracleAddress;
@@ -143,7 +143,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         bytes32[] memory _underlyingTokenSymbols,
         address[] memory _stablecoinAddresses,
         uint256 _memoryParam
-    ) ERC20("Gyro Stable Coin", "GYRO") {
+    ) ERC20("Gyro Stable Coin", "GYRO") Ownable() {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
 
@@ -161,18 +161,21 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
 
         for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
-            PoolProperties storage poolProps;
-            poolProps.poolAddress = _gyroPoolAddresses[i];
-            poolProps.initialPoolWeight = _initialPoolWeights[i];
-            poolProperties.push(poolProps);
+            poolProperties.push(
+                PoolProperties({
+                    poolAddress: _gyroPoolAddresses[i],
+                    initialPoolWeight: _initialPoolWeights[i],
+                    initialPoolPrice: 0
+                })
+            );
         }
 
         for (uint256 i = 0; i < _underlyingTokenAddresses.length; i++) {
-            TokenProperties storage tokenProps;
-            tokenProps.oracleAddress = _underlyingTokenOracleAddresses[i];
-            tokenProps.tokenSymbol = _underlyingTokenSymbols[i];
-            tokenProps.tokenIndex = uint16(i);
-            _tokenAddressToProperties[_underlyingTokenAddresses[i]] = tokenProps;
+            _tokenAddressToProperties[_underlyingTokenAddresses[i]] = TokenProperties({
+                oracleAddress: _underlyingTokenOracleAddresses[i],
+                tokenSymbol: _underlyingTokenSymbols[i],
+                tokenIndex: uint16(i)
+            });
         }
 
         // Calculate BPT prices for all pools
