@@ -6,3 +6,4 @@ artifacts
 typechain
 deployments/localhost
 dist/
+.env

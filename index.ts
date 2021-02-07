@@ -1,5 +1,3 @@
-// export type { GyroFund } from "./typechain/GyroFund";
-
 export type { ERC20 } from "./typechain/ERC20";
 export type { BalancerExternalTokenRouter } from "./typechain/BalancerExternalTokenRouter";
 export type { BalancerTokenRouter } from "./typechain/BalancerTokenRouter";
@@ -20,6 +18,6 @@ export { GyroLib__factory } from "./typechain/factories/GyroLib__factory";
 export { GyroPriceOracle__factory } from "./typechain/factories/GyroPriceOracle__factory";
 export { GyroRouter__factory } from "./typechain/factories/GyroRouter__factory";
 
-import _deployment from "./artifacts/deployment.json";
+import _deployment from "./deployments/metadata.json";
 
 export const deployment = _deployment;

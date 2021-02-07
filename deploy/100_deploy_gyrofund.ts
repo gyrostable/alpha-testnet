@@ -1,14 +1,25 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { DeployFunction } from "hardhat-deploy/types";
-import { ethers } from "hardhat";
+import { DeployFunction, Deployment } from "hardhat-deploy/types";
+import { ethers, network } from "hardhat";
 
 import initConfig from "../config/initialization.json";
+import deploymentsConfig from "../config/deployments.json";
 import { BigNumber, BigNumberish, utils } from "ethers";
+
+type Networks = keyof typeof deploymentsConfig;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await ethers.getSigners();
   const { deployments } = hre;
   const { deploy, execute } = deployments;
+
+  const networkName = <Networks>network.name;
+
+  const deploymentConfig = deploymentsConfig[networkName];
+
+  type TokenName = keyof typeof deploymentConfig.tokenOracles;
+  const tokensNames = deploymentConfig.tokenNames.map((v) => <TokenName>v);
+  const poolNames = deploymentConfig.poolNames;
 
   const routerDeployment = await deploy("GyroRouter", {
     from: deployer.address,
@@ -39,31 +50,41 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: true,
   });
 
-  const dummyPriceOracleDeployment = await deploy("DummyPriceWrapper", {
-    from: deployer.address,
-    args: [],
-    log: true,
-    deterministicDeployment: true,
-  });
+  const oracleDeployments: Record<string, Deployment> = Object.fromEntries(
+    await Promise.all(
+      deploymentConfig.oracles.map(async (oracleName) => {
+        const deployment = await deploy(oracleName, {
+          from: deployer.address,
+          args: [],
+          log: true,
+          deterministicDeployment: true,
+        });
+        return [oracleName, deployment];
+      })
+    )
+  );
 
   const scale = (n: BigNumberish) => BigNumber.from(n).mul(BigNumber.from(10).pow(18));
 
-  // for (const pool of initConfig.balancer_pools) {
-  //   const poolDeployment = await deployments.get(`BPool${pool.name}`);
-  const poolNames = ["usdc_weth", "weth_dai"];
   const pools = await Promise.all(poolNames.map((name) => deployments.get(`BPool${name}`)));
 
-  const tokensNames = ["WETH", "USDC", "DAI"];
-  const tokens = await Promise.all(tokensNames.map((name) => deployments.get(`${name}ERC20`)));
-  const tokenAddresses = tokens.map((t) => t.address);
+  const tokens: Record<string, Deployment> = Object.fromEntries(
+    await Promise.all(
+      tokensNames.map(async (name) => {
+        const deployment = await deployments.get(`${name}ERC20`);
+        return [name, deployment];
+      })
+    )
+  );
+  const tokenAddresses = Object.values(tokens).map((t) => t.address);
+  const stableCoinAddresses = deploymentConfig.stableCoins.map((t) => tokens[t].address);
 
-  const repeat = (value: any, n: number) => {
-    const result = [];
-    for (let i = 0; i < n; i++) {
-      result.push(value);
-    }
-    return result;
-  };
+  const oracleAddresses = tokensNames.map((name) => {
+    const oracleName = deploymentConfig.tokenOracles[name];
+    return oracleDeployments[oracleName].address;
+  });
+
+  const memoryParam = BigNumber.from(deploymentConfig.memoryParam);
 
   const fundParams = [
     scale(1).div(10), // uint256 _portfolioWeightEpsilon,
@@ -72,10 +93,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     oracleDeployment.address, // address _priceOracleAddress,
     routerDeployment.address, // address _routerAddress,
     tokenAddresses, // address[] memory _underlyingTokenAddresses,
-    repeat(dummyPriceOracleDeployment.address, tokens.length), // address[] memory _underlyingTokenOracleAddresses,
+    oracleAddresses, // address[] memory _underlyingTokenOracleAddresses,
     tokensNames.map((n) => utils.formatBytes32String(n)), // bytes32[] memory _underlyingTokenSymbols,
-    [tokenAddresses[1], tokenAddresses[2]], // address[] memory _stablecoinAddresses,
-    BigNumber.from("999993123563518195"), // uint256 _memoryParam
+    stableCoinAddresses, // address[] memory _stablecoinAddresses,
+    memoryParam, // uint256 _memoryParam
   ];
   console.log("deploying with args:", fundParams);
 

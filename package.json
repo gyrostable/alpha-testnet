@@ -10,6 +10,7 @@
     "@typechain/ethers-v5": "^5.0.0",
     "@types/chai": "^4.2.14",
     "@types/chai-as-promised": "^7.1.3",
+    "@types/glob": "^7.1.3",
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.20",
     "bignumber.js": "^9.0.1",
@@ -18,6 +19,7 @@
     "cross-env": "^7.0.3",
     "ethereum-waffle": "^3.0.0",
     "ethers": "5.0.26",
+    "glob": "^7.1.6",
     "hardhat": "^2.0.2",
     "hardhat-deploy": "^0.7.0-beta.44",
     "hardhat-typechain": "^0.3.4",
@@ -39,8 +41,9 @@
     "typechain"
   ],
   "scripts": {
-    "build": "run-s build:solidity build:js",
-    "build:full": "run-s build:solidity deploy export build:js",
+    "build": "run-s build:solidity build:metadata build:js",
+    "build:full": "run-s build:solidity deploy build:metadata export build:js",
+    "build:metadata": "npx ts-node scripts/generate-deployments.ts",
     "build:solidity": "npx hardhat compile",
     "build:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
     "local:mint": "npx hardhat run --network localhost scripts/mint-gyro.ts",
@@ -48,6 +51,7 @@
     "test": "npx hardhat test",
     "run-node": "npx hardhat node --show-accounts --no-deploy",
     "deploy": "npx hardhat deploy --network localhost --reset",
+    "deploy:kovan": "npx hardhat deploy --network kovan",
     "export": "npx hardhat export --export artifacts/deployment.json --network localhost"
   },
   "prettier": {
