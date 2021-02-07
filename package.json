@@ -1,6 +1,7 @@
 {
   "name": "@gyrostable/core",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "version": "0.1.0",
   "sideEffects": false,
   "description": "The Gyroscope Dollar core contracts",
   "devDependencies": {
