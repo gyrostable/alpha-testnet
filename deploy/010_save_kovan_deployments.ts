@@ -12,7 +12,7 @@ const tokens = [
 ];
 
 const pools = [
-  { name: "usdc_weth", address: "0xE64122D3Eb6D96B7b3f502deb30563Fd647cad6B" },
+  { name: "usdc_weth", address: "0xdc6d6e66d690339a97dfb51d50c1f7415d30d8f6" },
   { name: "weth_dai", address: "0x56Ca37E2a2B6C9129d748415ec0c1e5E2Bc089de" },
 ];
 
@@ -48,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const compoundUniswapOracleAbi = JSON.parse(
     await fs.readFile(compoundUniswapOracleAbiPath, "utf-8")
   );
-  await save("CompoundUniswapOracle", {
+  await save("CompoundPriceWrapper", {
     address: compoundUniswapOracleAddress,
     abi: compoundUniswapOracleAbi,
   });

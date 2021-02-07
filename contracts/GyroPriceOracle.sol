@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "hardhat/console.sol";
 import "./balancer/BPool.sol";
@@ -143,6 +144,9 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
 }
 
 contract CompoundPriceWrapper is PriceOracle {
+    using SafeMath for uint256;
+
+    uint256 public constant oraclePriceScale = 1000000;
     address compoundOracle;
 
     constructor(address _compoundOracle) {
@@ -150,7 +154,13 @@ contract CompoundPriceWrapper is PriceOracle {
     }
 
     function getPrice(string memory tokenSymbol) public view override returns (uint256) {
-        return UniswapAnchoredView(compoundOracle).price(tokenSymbol);
+        if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("WETH"))) {
+            tokenSymbol = "ETH";
+        }
+        UniswapAnchoredView oracle = UniswapAnchoredView(compoundOracle);
+        uint256 unscaledPrice = oracle.price(tokenSymbol);
+        TokenConfig memory tokenConfig = oracle.getTokenConfigBySymbol(tokenSymbol);
+        return unscaledPrice.mul(tokenConfig.baseUnit).div(oraclePriceScale);
     }
 }
 

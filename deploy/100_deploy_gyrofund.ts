@@ -50,16 +50,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: true,
   });
 
+  const oracles: any[] = deploymentConfig.oracles;
   const oracleDeployments: Record<string, Deployment> = Object.fromEntries(
     await Promise.all(
-      deploymentConfig.oracles.map(async (oracleName) => {
-        const deployment = await deploy(oracleName, {
+      oracles.map(async ({ name, args }) => {
+        const deployment = await deploy(name, {
           from: deployer.address,
-          args: [],
+          args: args,
           log: true,
           deterministicDeployment: true,
         });
-        return [oracleName, deployment];
+        return [name, deployment];
       })
     )
   );

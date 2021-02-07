@@ -2,7 +2,7 @@
   "localhost": {
     "poolNames": ["usdc_weth", "weth_dai"],
     "tokenNames": ["WETH", "USDC", "DAI"],
-    "oracles": ["DummyPriceWrapper"],
+    "oracles": [{ "name": "DummyPriceWrapper", "args": [] }],
     "stableCoins": ["USDC", "DAI"],
     "tokenOracles": {
       "WETH": "DummyPriceWrapper",
@@ -14,7 +14,9 @@
   "kovan": {
     "poolNames": ["usdc_weth", "weth_dai"],
     "tokenNames": ["WETH", "USDC", "DAI"],
-    "oracles": ["CompoundPriceWrapper"],
+    "oracles": [
+      { "name": "CompoundPriceWrapper", "args": ["0xbBdE93962Ca9fe39537eeA7380550ca6845F8db7"] }
+    ],
     "stableCoins": ["USDC", "DAI"],
     "tokenOracles": {
       "WETH": "CompoundPriceWrapper",
