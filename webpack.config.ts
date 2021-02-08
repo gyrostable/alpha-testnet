@@ -20,7 +20,6 @@ const config: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "gyro-core.bundle.js",
-    library: "gryo-core",
     libraryTarget: "commonjs",
     globalObject: "this",
   },
