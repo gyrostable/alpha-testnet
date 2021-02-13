@@ -17,9 +17,9 @@ pragma solidity ^0.7.0;
 
 contract TokenFaucet {
 
-    string private _name;
-    string private _symbol;
-    uint8   private _decimals;
+    string public name;
+    string public symbol;
+    uint8   public decimals;
 
     address private _owner;
 
@@ -30,6 +30,7 @@ contract TokenFaucet {
     mapping(address => uint256) private lastAccessTime;
 
     uint256 constant private waitTime = 30 minutes;
+    uint256 private mintAmt;
 
     modifier _onlyOwner_() {
         require(msg.sender == _owner, "ERR_NOT_OWNER");
@@ -48,26 +49,20 @@ contract TokenFaucet {
     }
 
     constructor(
-        string memory name,
-        string memory symbol,
-        uint8 decimals
-    ) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256 _mintAmt
+    ) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
+        mintAmt = _mintAmt;
+    }
+
+    function initializeOwner() public {
+        require(_owner == address(0), "owner is already initialized");
         _owner = msg.sender;
-    }
-
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-
-    function decimals() public view returns(uint8) {
-        return _decimals;
     }
 
     function _move(address src, address dst, uint amt) internal {
@@ -115,18 +110,18 @@ contract TokenFaucet {
     }
 
     function allowedToMint(address whom) internal view returns (bool) {
-        if (lastAccessTime[_address] == 0) {
+        if (lastAccessTime[whom] == 0) {
             return true;
-        } else if(block.timestamp >= lastAccessTime[_address] + waitTime)  {
+        } else if(block.timestamp >= lastAccessTime[whom] + waitTime)  {
             return true;
         }
         return false;
     }
 
-    function mint(address dst, uint256 amt) public returns (bool) {
+    function mint() public returns (bool) {
         require(allowedToMint(msg.sender));
         lastAccessTime[msg.sender] = block.timestamp;
-        _mint(dst, amt);
+        _mint(msg.sender, mintAmt*10**decimals);
         return true;
     }
 
