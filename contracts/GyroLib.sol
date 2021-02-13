@@ -154,6 +154,10 @@ contract GyroLib {
         return fund.poolAddresses();
     }
 
+    function getReserveValues() external view returns (uint256, address[] memory, uint256[] memory) {
+        return fund.getReserveValues();
+    }
+
     function sortBPTokenstoPools(address[] memory _BPTokensIn, uint256[] memory amounts)
         public
         view
