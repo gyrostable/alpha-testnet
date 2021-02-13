@@ -46,6 +46,12 @@ interface GyroFund is IERC20 {
         uint256[] memory _amountsOut,
         uint256 _maxGyroRedeemed
     ) external view returns (uint256 errorCode, uint256 estimatedAmount);
+
+    function getReserveValues() external view returns(
+        uint256 errorCode,
+        address[] memory BPTokenAddresses,
+        uint256[] memory BPReserveDollarValues
+    );
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -727,6 +733,26 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted);
 
         return (_errorCode, weights.gyroAmount);
+    }
+
+    function getReserveValues() public view override returns(uint256, address[] memory, uint256[] memory) {
+        
+        address[] memory _BPTokens = new address[](poolProperties.length);
+        uint256[] memory _zeroAmounts = new uint256[](poolProperties.length);
+        for (uint256 i = 0; i < poolProperties.length; i++) {
+            _BPTokens[i] = poolProperties[i].poolAddress;
+        }
+        
+        (uint256 _errorCode, Weights memory weights, ) =
+            mintChecksPassInternal(_BPTokens, _zeroAmounts, uint256(0));
+        
+        uint256[] memory _BPReserveDollarValues = new uint256[](_BPTokens.length);
+
+        for (uint256 i=0; i < _BPTokens.length; i++) {
+            _BPReserveDollarValues[i] = weights._currentWeights[i].scaledMul(weights._totalPortfolioValue);
+        }
+
+        return (_errorCode, _BPTokens, _BPReserveDollarValues);
     }
 
     function mintChecksPassInternal(
