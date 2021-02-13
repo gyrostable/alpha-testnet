@@ -4,7 +4,7 @@ import { BPool__factory as BPoolFactory } from "../typechain/factories/BPool__fa
 import { GyroFund__factory as GyroFundFactory } from "../typechain/factories/GyroFund__factory";
 const { deployments, ethers } = hre;
 
-const amountToMint = 100;
+const amountToMint = 10;
 const poolNames = ["usdc_weth", "weth_dai"];
 
 async function main() {
@@ -20,7 +20,7 @@ async function main() {
   );
 
   const mintedAmount = BigNumber.from(10).pow(18).mul(amountToMint);
-  const tx = await gyroFund.mintTest(poolAddresses, [ten, ten], mintedAmount);
+  const tx = await gyroFund.mint(poolAddresses, [ten, ten], mintedAmount);
   await tx.wait();
 
   const balance = await gyroFund.balanceOf(account.address);

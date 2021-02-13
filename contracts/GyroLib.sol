@@ -49,20 +49,10 @@ contract GyroLib {
         (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(_BPTokensIn, _BPAmountsIn);
 
-        bool realRedeem = false;
-        bool _launch;
+        (uint256 errorCode, uint256 _amountToRedeem) =
+            fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, _maxRedeemed);
 
-        uint256 _amountToRedeem;
-
-        (_launch, _amountToRedeem, , , , , ) = fund.redeemChecksPass(
-            _sortedAddresses,
-            _sortedAmounts,
-            _maxRedeemed,
-            realRedeem
-        );
-
-        require(_launch, "Not safe to launch");
-
+        require(errorCode == 0, fund.errorCodeToString(errorCode));
         require(_amountToRedeem <= _maxRedeemed, "too much slippage");
 
         require(
@@ -102,17 +92,7 @@ contract GyroLib {
         (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        bool realMint = false;
-        bool _launch;
-
-        uint256 _amountToMint;
-
-        (_launch, _amountToMint, , , , , ) = fund.mintChecksPass(
-            _sortedAddresses,
-            _sortedAmounts,
-            10,
-            realMint
-        );
+        (, uint256 _amountToMint) = fund.mintChecksPass(_sortedAddresses, _sortedAmounts, 10);
 
         return _amountToMint;
     }
@@ -121,52 +101,33 @@ contract GyroLib {
         address[] memory _tokensIn,
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
-    ) public view returns (bool, uint256) {
+    ) public view returns (uint256) {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensIn, _amountsIn);
 
         (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        uint256 gyroToMint;
-        bool _launch;
-        uint256 errorCode;
-        bool realMint = false;
+        (uint256 errorCode, ) = fund.mintChecksPass(sortedAddresses, sortedAmounts, _minGyroMinted);
 
-        (_launch, gyroToMint, errorCode, , , , ) = fund.mintChecksPass(
-            sortedAddresses,
-            sortedAmounts,
-            _minGyroMinted,
-            realMint
-        );
-
-        return (_launch, errorCode);
+        return errorCode;
     }
 
     function wouldRedeemChecksPass(
         address[] memory _tokensOut,
         uint256[] memory _amountsOut,
         uint256 _maxGyroRedeemed
-    ) public view returns (bool, uint256) {
+    ) public view returns (uint256) {
         (address[] memory bptTokens, uint256[] memory amounts) =
             externalTokensRouter.estimateDeposit(_tokensOut, _amountsOut);
 
         (address[] memory sortedAddresses, uint256[] memory sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        uint256 gyroToRedeem;
-        bool _launch;
-        uint256 errorCode;
-        bool realRedeem = false;
+        (uint256 errorCode, ) =
+            fund.redeemChecksPass(sortedAddresses, sortedAmounts, _maxGyroRedeemed);
 
-        (_launch, gyroToRedeem, errorCode, , , , ) = fund.redeemChecksPass(
-            sortedAddresses,
-            sortedAmounts,
-            _maxGyroRedeemed,
-            realRedeem
-        );
-
-        return (_launch, errorCode);
+        return errorCode;
     }
 
     function estimateRedeemedGyro(address[] memory _tokensOut, uint256[] memory _amountsOut)
@@ -180,17 +141,7 @@ contract GyroLib {
         (address[] memory _sortedAddresses, uint256[] memory _sortedAmounts) =
             sortBPTokenstoPools(bptTokens, amounts);
 
-        bool realRedeem = false;
-        bool _launch;
-
-        uint256 _amountToRedeem;
-
-        (_launch, _amountToRedeem, , , , , ) = fund.redeemChecksPass(
-            _sortedAddresses,
-            _sortedAmounts,
-            10,
-            realRedeem
-        );
+        (, uint256 _amountToRedeem) = fund.redeemChecksPass(_sortedAddresses, _sortedAmounts, 10);
 
         return _amountToRedeem;
     }

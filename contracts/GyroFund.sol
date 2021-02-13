@@ -27,41 +27,25 @@ interface GyroFund is IERC20 {
         uint256 _maxGyroRedeemed
     ) external returns (uint256);
 
+    /**
+     * Takes in the same parameters as mint and returns whether the
+     * mint will succeed or not as well as the estimated mint amount
+     * @param _BPTokensIn addresses of the input balancer pool tokens
+     * @param _amountsIn amounts of the input balancer pool tokens
+     * @param _minGyroMinted mininum amount of gyro to mint
+     * @return errorCode of 0 is no error happens or a value described in errors.json
+     */
     function mintChecksPass(
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
-        uint256 _minGyroMinted,
-        bool realMint
-    )
-        external
-        view
-        returns (
-            bool,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        );
+        uint256 _minGyroMinted
+    ) external view returns (uint256 errorCode, uint256 estimatedAmount);
 
     function redeemChecksPass(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
-        uint256 _maxGyroRedeemed,
-        bool realRedeem
-    )
-        external
-        view
-        returns (
-            bool,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        );
+        uint256 _maxGyroRedeemed
+    ) external view returns (uint256 errorCode, uint256 estimatedAmount);
 }
 
 contract GyroFundV1 is GyroFund, Ownable, ERC20 {
@@ -101,17 +85,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256 _nav;
         uint256 _dollarValue;
         uint256 _totalPortfolioValue;
-        bool _launch;
-        uint256 errorCode;
         uint256[] _zeroArray;
         uint256 gyroAmount;
     }
 
     struct FlowLogger {
-        uint256 _inflowHistory;
-        uint256 _outflowHistory;
-        uint256 _currentBlock;
-        uint256 _lastSeenBlock;
+        uint256 inflowHistory;
+        uint256 outflowHistory;
+        uint256 currentBlock;
+        uint256 lastSeenBlock;
     }
 
     PoolProperties[] public poolProperties;
@@ -710,22 +692,9 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
     ) public override returns (uint256 amountToMint) {
-        bool realMint = true;
-
-        FlowLogger memory flowLogger;
-
-        bool _launch;
-        uint256 errorCode;
-
-        (
-            _launch,
-            amountToMint,
-            errorCode,
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = mintChecksPass(_BPTokensIn, _amountsIn, _minGyroMinted, realMint);
+        (uint256 errorCode, Weights memory weights, FlowLogger memory flowLogger) =
+            mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted);
+        require(errorCode == 0, errorCodeToString(errorCode));
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool success =
@@ -733,15 +702,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             require(success, "failed to transfer tokens, check allowance");
         }
 
-        _mint(msg.sender, amountToMint);
+        _mint(msg.sender, weights.gyroAmount);
 
         finalizeFlowLogger(
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            amountToMint,
+            flowLogger.inflowHistory,
+            flowLogger.outflowHistory,
+            weights.gyroAmount,
             0,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
+            flowLogger.currentBlock,
+            flowLogger.lastSeenBlock
         );
 
         emit Mint(msg.sender, amountToMint);
@@ -752,42 +721,27 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     function mintChecksPass(
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
-        uint256 _minGyroMinted,
-        bool realMint
-    )
-        public
-        view
-        override
-        returns (
-            bool,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        (Weights memory weights, FlowLogger memory flowLogger) =
-            mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted, realMint);
+        uint256 _minGyroMinted
+    ) public view override returns (uint256 errorCode, uint256 estimatedMint) {
+        (uint256 _errorCode, Weights memory weights, ) =
+            mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted);
 
-        return (
-            weights._launch,
-            weights.gyroAmount,
-            weights.errorCode,
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        );
+        return (_errorCode, weights.gyroAmount);
     }
 
     function mintChecksPassInternal(
         address[] memory _BPTokensIn,
         uint256[] memory _amountsIn,
-        uint256 _minGyroMinted,
-        bool realMint
-    ) internal view returns (Weights memory, FlowLogger memory) {
+        uint256 _minGyroMinted
+    )
+        internal
+        view
+        returns (
+            uint256 errorCode,
+            Weights memory weights,
+            FlowLogger memory flowLogger
+        )
+    {
         require(
             _BPTokensIn.length == _amountsIn.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -800,8 +754,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
 
         uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
-
-        Weights memory weights;
 
         weights._zeroArray = new uint256[](_BPTokensIn.length);
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
@@ -816,24 +768,19 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensIn, _amountsIn, weights._zeroArray);
 
-        weights._launch = safeToMint(
-            _BPTokensIn,
-            weights._hypotheticalWeights,
-            weights._idealWeights,
-            _allUnderlyingPrices,
-            _amountsIn,
-            _currentBPTPrices,
-            weights._currentWeights
-        );
-
-        weights.errorCode = 0;
-        if (realMint) {
-            require(
-                weights._launch,
-                "This combination of tokens would move gyroscope weights too far from target."
+        bool _safeToMint =
+            safeToMint(
+                _BPTokensIn,
+                weights._hypotheticalWeights,
+                weights._idealWeights,
+                _allUnderlyingPrices,
+                _amountsIn,
+                _currentBPTPrices,
+                weights._currentWeights
             );
-        } else {
-            weights.errorCode |= WOULD_UNBALANCE_GYROSCOPE;
+
+        if (!_safeToMint) {
+            errorCode |= WOULD_UNBALANCE_GYROSCOPE;
         }
 
         weights._dollarValue = 0;
@@ -844,70 +791,44 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             );
         }
 
-        FlowLogger memory flowLogger;
-        (
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
+        flowLogger = initializeFlowLogger();
 
         weights.gyroAmount = gyroPriceOracle.getAmountToMint(
             weights._dollarValue,
-            flowLogger._inflowHistory,
+            flowLogger.inflowHistory,
             weights._nav
         );
 
-        if (realMint) {
-            require(weights.gyroAmount >= _minGyroMinted, "Too much slippage is expected");
-        } else {
-            if (weights.gyroAmount < _minGyroMinted) {
-                weights._launch = false;
-                weights.errorCode |= TOO_MUCH_SLIPPAGE;
-            }
+        if (weights.gyroAmount < _minGyroMinted) {
+            errorCode |= TOO_MUCH_SLIPPAGE;
         }
 
-        return (weights, flowLogger);
+        return (errorCode, weights, flowLogger);
     }
 
     function redeemChecksPass(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
-        uint256 _maxGyroRedeemed,
-        bool realRedeem
-    )
-        public
-        view
-        override
-        returns (
-            bool,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        (Weights memory weights, FlowLogger memory flowLogger) =
-            redeemChecksPassInternal(_BPTokensOut, _amountsOut, _maxGyroRedeemed, realRedeem);
-        return (
-            weights._launch,
-            weights.gyroAmount,
-            weights.errorCode,
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        );
+        uint256 _maxGyroRedeemed
+    ) public view override returns (uint256 errorCode, uint256 estimatedAmount) {
+        (uint256 _errorCode, Weights memory weights, ) =
+            redeemChecksPassInternal(_BPTokensOut, _amountsOut, _maxGyroRedeemed);
+        return (_errorCode, weights.gyroAmount);
     }
 
     function redeemChecksPassInternal(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
-        uint256 _maxGyroRedeemed,
-        bool realRedeem
-    ) internal view returns (Weights memory, FlowLogger memory) {
+        uint256 _maxGyroRedeemed
+    )
+        internal
+        view
+        returns (
+            uint256 errorCode,
+            Weights memory weights,
+            FlowLogger memory flowLogger
+        )
+    {
         require(
             _BPTokensOut.length == _amountsOut.length,
             "tokensIn and valuesIn should have the same number of elements"
@@ -918,8 +839,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             checkBPTokenOrder(_BPTokensOut),
             "Input tokens in wrong order or contains invalid tokens"
         );
-
-        Weights memory weights;
 
         weights._zeroArray = new uint256[](_BPTokensOut.length);
         for (uint256 i = 0; i < _BPTokensOut.length; i++) {
@@ -938,21 +857,16 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             weights._totalPortfolioValue
         ) = calculateAllWeights(_currentBPTPrices, _BPTokensOut, weights._zeroArray, _amountsOut);
 
-        weights._launch = safeToRedeem(
-            _BPTokensOut,
-            weights._hypotheticalWeights,
-            weights._idealWeights,
-            weights._currentWeights
-        );
-
-        weights.errorCode = 0;
-        if (realRedeem) {
-            require(
-                weights._launch,
-                "This combination of tokens would move gyroscope weights too far from target."
+        bool _safeToRedeem =
+            safeToRedeem(
+                _BPTokensOut,
+                weights._hypotheticalWeights,
+                weights._idealWeights,
+                weights._currentWeights
             );
-        } else {
-            weights.errorCode |= WOULD_UNBALANCE_GYROSCOPE;
+
+        if (!_safeToRedeem) {
+            errorCode |= WOULD_UNBALANCE_GYROSCOPE;
         }
 
         weights._dollarValue = 0;
@@ -963,30 +877,19 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             );
         }
 
-        FlowLogger memory flowLogger;
-        (
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = initializeFlowLogger();
+        flowLogger = initializeFlowLogger();
 
         weights.gyroAmount = gyroPriceOracle.getAmountToRedeem(
             weights._dollarValue,
-            flowLogger._outflowHistory,
+            flowLogger.outflowHistory,
             weights._nav
         );
 
-        if (realRedeem) {
-            require(weights.gyroAmount <= _maxGyroRedeemed, "Too much slippage is expected");
-        } else {
-            if (weights.gyroAmount > _maxGyroRedeemed) {
-                weights._launch = false;
-                weights.errorCode |= TOO_MUCH_SLIPPAGE;
-            }
+        if (weights.gyroAmount > _maxGyroRedeemed) {
+            errorCode |= TOO_MUCH_SLIPPAGE;
         }
 
-        return (weights, flowLogger);
+        return (errorCode, weights, flowLogger);
     }
 
     function redeem(
@@ -994,21 +897,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _amountsOut,
         uint256 _maxGyroRedeemed
     ) public override returns (uint256 _gyroRedeemed) {
-        bool realRedeem = true;
-        bool _launch;
-        uint256 errorCode;
+        (uint256 errorCode, Weights memory weights, FlowLogger memory flowLogger) =
+            redeemChecksPassInternal(_BPTokensOut, _amountsOut, _maxGyroRedeemed);
+        require(errorCode == 0, errorCodeToString(errorCode));
 
-        FlowLogger memory flowLogger;
-
-        (
-            _launch,
-            _gyroRedeemed,
-            errorCode,
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
-        ) = redeemChecksPass(_BPTokensOut, _amountsOut, _maxGyroRedeemed, realRedeem);
+        _gyroRedeemed = weights.gyroAmount;
 
         _burn(msg.sender, _gyroRedeemed);
 
@@ -1022,43 +915,34 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         emit Redeem(msg.sender, _gyroRedeemed);
         finalizeFlowLogger(
-            flowLogger._inflowHistory,
-            flowLogger._outflowHistory,
+            flowLogger.inflowHistory,
+            flowLogger.outflowHistory,
             0,
             _gyroRedeemed,
-            flowLogger._currentBlock,
-            flowLogger._lastSeenBlock
+            flowLogger.currentBlock,
+            flowLogger.lastSeenBlock
         );
         return _gyroRedeemed;
     }
 
-    function initializeFlowLogger()
-        internal
-        view
-        returns (
-            uint256 _inflowHistory,
-            uint256 _outflowHistory,
-            uint256 _currentBlock,
-            uint256 _lastSeenBlock
-        )
-    {
-        _lastSeenBlock = lastSeenBlock;
-        _currentBlock = block.number;
-        _inflowHistory = inflowHistory;
-        _outflowHistory = outflowHistory;
+    function initializeFlowLogger() internal view returns (FlowLogger memory flowLogger) {
+        flowLogger.lastSeenBlock = lastSeenBlock;
+        flowLogger.currentBlock = block.number;
+        flowLogger.inflowHistory = inflowHistory;
+        flowLogger.outflowHistory = outflowHistory;
 
         uint256 _memoryParam = memoryParam;
 
-        if (_lastSeenBlock < _currentBlock) {
-            _inflowHistory = _inflowHistory.scaledMul(
-                _memoryParam.scaledPow(_currentBlock.sub(_lastSeenBlock))
+        if (flowLogger.lastSeenBlock < flowLogger.currentBlock) {
+            flowLogger.inflowHistory = flowLogger.inflowHistory.scaledMul(
+                _memoryParam.scaledPow(flowLogger.currentBlock.sub(flowLogger.lastSeenBlock))
             );
-            _outflowHistory = _outflowHistory.scaledMul(
-                _memoryParam.scaledPow(_currentBlock.sub(_lastSeenBlock))
+            flowLogger.outflowHistory = flowLogger.outflowHistory.scaledMul(
+                _memoryParam.scaledPow(flowLogger.currentBlock.sub(flowLogger.lastSeenBlock))
             );
         }
 
-        return (_inflowHistory, _outflowHistory, _currentBlock, _lastSeenBlock);
+        return flowLogger;
     }
 
     function finalizeFlowLogger(
@@ -1094,5 +978,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _addresses[i] = underlyingTokenAddresses[i];
         }
         return _addresses;
+    }
+
+    function errorCodeToString(uint256 errorCode) public pure returns (string memory) {
+        if ((errorCode & WOULD_UNBALANCE_GYROSCOPE) != 0) {
+            return "ERR_WOULD_UNBALANCE_GYROSCOPE";
+        } else if ((errorCode & TOO_MUCH_SLIPPAGE) != 0) {
+            return "ERR_TOO_MUCH_SLIPPAGE";
+        } else {
+            return "ERR_UNKNOWN";
+        }
     }
 }

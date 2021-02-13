@@ -1,0 +1,8 @@
+[
+  {
+    "number": 1,
+    "code": "ERR_WOULD_UNBALANCE_GYROSCOPE",
+    "message": "This combination of tokens would move gyroscope weights too far from target."
+  },
+  { "number": 2, "code": "ERR_TOO_MUCH_SLIPPAGE", "message": "Too much slippage is expected" }
+]
