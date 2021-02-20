@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as webpack from "webpack";
+import CopyPlugin from "copy-webpack-plugin";
 
 const config: webpack.Configuration = {
   mode: "production",
@@ -8,14 +9,18 @@ const config: webpack.Configuration = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /(?<!\.d)\.tsx?$/,
         use: [{ loader: "ts-loader", options: { configFile: "tsconfig.webpack.json" } }],
         exclude: /node_modules/,
+      },
+      {
+        test: /\.d\.ts$/,
+        loader: "ignore-loader",
       },
     ],
   },
   resolve: {
-    extensions: [".tsx", ".ts", ".js"],
+    extensions: [".tsx", ".ts", ".js", ".d.ts"],
   },
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -27,6 +32,16 @@ const config: webpack.Configuration = {
     ethers: "ethers",
     "@ethersproject/contracts": "@ethersproject/contracts",
   },
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        {
+          from: "typechain/*.d.ts",
+          to: "typechain/[name].[ext]",
+        },
+      ],
+    }),
+  ],
 };
 
 export default config;

@@ -1,0 +1,85 @@
+tokens:
+  WETH:
+    name: "Wrapped Ether"
+    symbol: "WETH"
+    decimals: 18
+    balance: 1000
+    price: 1850000000
+    mintAmount: 1
+    stable: false
+  USDC:
+    name: "USD Coin"
+    symbol: "USDC"
+    decimals: 6
+    balance: 1000
+    price: 1000000
+    mintAmount: 1000
+    stable: true
+  DAI:
+    name: "Dai Stablecoin"
+    symbol: "DAI"
+    decimals: 18
+    balance: 1000
+    price: 1000000
+    mintAmount: 1000
+    stable: true
+
+pools:
+  weth_dai:
+    name: weth_dai
+    assets:
+      - symbol: WETH
+        amount: 50000
+        weight: 5
+      - symbol: DAI
+        amount: 50000
+        weight: 5
+    swap_fee: 1000
+  usdc_weth:
+    name: usdc_weth
+    assets:
+      - symbol: USDC
+        amount: 50000
+        weight: 5
+      - symbol: WETH
+        amount: 50000
+        weight: 5
+    swap_fee: 1000
+
+deployments:
+  localhost:
+    pools:
+      - name: usdc_weth
+      - name: weth_dai
+    tokens:
+      - symbol: WETH
+      - symbol: USDC
+      - symbol: DAI
+    oracles:
+      - name: UniswapAnchoredView
+        args: []
+      - name: "DummyPriceWrapper"
+        args: []
+    tokenOracles:
+      WETH: DummyPriceWrapper
+      USDC: DummyPriceWrapper
+      DAI: DummyPriceWrapper
+    memoryParam: "999993123563518195"
+
+  kovan:
+    pools:
+      - name: usdc_weth
+      - name: weth_dai
+    bfactory: "0x8f7F78080219d4066A8036ccD30D588B416a40DB"
+    tokens:
+      - symbol: WETH
+      - symbol: USDC
+      - symbol: DAI
+    oracles:
+      - name: "CompoundPriceWrapper"
+        args: ["0xbBdE93962Ca9fe39537eeA7380550ca6845F8db7"]
+    tokenOracles:
+      WETH: CompoundPriceWrapper
+      USDC: CompoundPriceWrapper
+      DAI: CompoundPriceWrapper
+    memoryParam: "999993123563518195"

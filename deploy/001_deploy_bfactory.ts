@@ -1,12 +1,14 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
+import { DeployFunction } from "hardhat-deploy/types";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { getDeploymentConfig } from "../misc/deployment-utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await ethers.getSigners();
   const { deployments } = hre;
   const { deploy } = deployments;
-  if (hre.network.live) {
+  const { deployment } = await getDeploymentConfig(hre.network.name);
+  if (deployment.bfactory) {
     return;
   }
 
@@ -19,3 +21,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 export default func;
+func.tags = ["bfactory"];

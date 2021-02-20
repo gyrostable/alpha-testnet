@@ -1,25 +1,26 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+// import deploymentsConfig from "../config/deployments.json";
+import { BigNumber, utils } from "ethers";
+import { ethers } from "hardhat";
 import { DeployFunction, Deployment } from "hardhat-deploy/types";
-import { ethers, network } from "hardhat";
-
-import initConfig from "../config/initialization.json";
-import deploymentsConfig from "../config/deployments.json";
-import { BigNumber, BigNumberish, utils } from "ethers";
-
-type Networks = keyof typeof deploymentsConfig;
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {
+  getBPoolAddress,
+  getBPoolsAddresses,
+  getDeploymentConfig,
+  getTokenAddress,
+  getTokensAddresses,
+  scale,
+  TokenConfig,
+  transformArgs,
+} from "../misc/deployment-utils";
+import { BalancerExternalTokenRouter__factory, ERC20__factory } from "../typechain";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await ethers.getSigners();
   const { deployments } = hre;
   const { deploy, execute } = deployments;
 
-  const networkName = <Networks>network.name;
-
-  const deploymentConfig = deploymentsConfig[networkName];
-
-  type TokenName = keyof typeof deploymentConfig.tokenOracles;
-  const tokensNames = deploymentConfig.tokenNames.map((v) => <TokenName>v);
-  const poolNames = deploymentConfig.poolNames;
+  const { deployment, tokens } = await getDeploymentConfig(hre.network.name);
 
   const routerDeployment = await deploy("GyroRouter", {
     from: deployer.address,
@@ -38,8 +39,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     deterministicDeployment: true,
   });
+  const balancerExternalTokenRouter = BalancerExternalTokenRouter__factory.connect(
+    balancerExternalTokenRouterDeployment.address,
+    deployer
+  );
   if (balancerExternalTokenRouterDeployment.newlyDeployed) {
-    await execute("BalancerExternalTokenRouter", { from: deployer.address }, "initializeOwner");
+    await balancerExternalTokenRouter.initializeOwner();
   }
 
   const oracleDeployment = await deploy("GyroPriceOracle", {
@@ -50,52 +55,41 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: true,
   });
 
-  const oracles: any[] = deploymentConfig.oracles;
-  const oracleDeployments: Record<string, Deployment> = Object.fromEntries(
-    await Promise.all(
-      oracles.map(async ({ name, args }) => {
-        const deployment = await deploy(name, {
-          from: deployer.address,
-          args: args,
-          log: true,
-          deterministicDeployment: true,
-        });
-        return [name, deployment];
-      })
-    )
-  );
+  const oracles = deployment.oracles;
+  const oracleDeployments: Record<string, Deployment> = {};
+  for (const { name, args } of oracles) {
+    const transformedArgs = await transformArgs(args, deployments);
+    oracleDeployments[name] = await deploy(name, {
+      from: deployer.address,
+      args: transformedArgs,
+      log: true,
+      deterministicDeployment: true,
+    });
+  }
 
-  const scale = (n: BigNumberish) => BigNumber.from(n).mul(BigNumber.from(10).pow(18));
+  const poolAddresses = await getBPoolsAddresses(deployment.pools, deployment, deployments);
+  // const pools = await Promise.all(poolNames.map((name: string) => deployments.get(`BPool${name}`)));
 
-  const pools = await Promise.all(poolNames.map((name) => deployments.get(`BPool${name}`)));
-
-  const tokens: Record<string, Deployment> = Object.fromEntries(
-    await Promise.all(
-      tokensNames.map(async (name) => {
-        const deployment = await deployments.get(`${name}ERC20`);
-        return [name, deployment];
-      })
-    )
-  );
-  const tokenAddresses = Object.values(tokens).map((t) => t.address);
-  const stableCoinAddresses = deploymentConfig.stableCoins.map((t) => tokens[t].address);
-
-  const oracleAddresses = tokensNames.map((name) => {
-    const oracleName = deploymentConfig.tokenOracles[name];
+  const oracleAddresses = deployment.tokens.map((token: TokenConfig) => {
+    const oracleName = deployment.tokenOracles[token.symbol];
     return oracleDeployments[oracleName].address;
   });
 
-  const memoryParam = BigNumber.from(deploymentConfig.memoryParam);
+  const memoryParam = BigNumber.from(deployment.memoryParam);
+
+  const tokenAddresses = await getTokensAddresses(deployment.tokens, deployment, deployments);
+  const stableTokens = deployment.tokens.filter((t) => !tokens[t.symbol].stable);
+  const stableCoinAddresses = await getTokensAddresses(stableTokens, deployment, deployments);
 
   const fundParams = [
     scale(1).div(10), // uint256 _portfolioWeightEpsilon,
     [scale(5).div(10), scale(5).div(10)], // uint256[] memory _initialPoolWeights,
-    pools.map((p) => p.address), // address[] memory _gyroPoolAddresses,
+    poolAddresses, // address[] memory _gyroPoolAddresses,
     oracleDeployment.address, // address _priceOracleAddress,
     routerDeployment.address, // address _routerAddress,
     tokenAddresses, // address[] memory _underlyingTokenAddresses,
     oracleAddresses, // address[] memory _underlyingTokenOracleAddresses,
-    tokensNames.map((n) => utils.formatBytes32String(n)), // bytes32[] memory _underlyingTokenSymbols,
+    deployment.tokens.map((t) => utils.formatBytes32String(t.symbol)), // bytes32[] memory _underlyingTokenSymbols,
     stableCoinAddresses, // address[] memory _stablecoinAddresses,
     memoryParam, // uint256 _memoryParam
   ];
@@ -118,27 +112,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: true,
   });
 
-  const execOptions = { from: deployer.address, log: true };
-  const amountApproved = BigNumber.from(10).pow(50);
+  // const amountApproved = BigNumber.from(10).pow(50);
 
-  for (const poolName of poolNames) {
-    const pool = initConfig.balancer_pools.find((p) => p.name === poolName);
-    if (!pool) {
-      throw new Error(`${poolName} not found`);
-    }
-    const poolDeployment = await deployments.get(`BPool${pool.name}`);
-    await execute("BalancerExternalTokenRouter", execOptions, "addPool", poolDeployment.address);
+  for (const pool of deployment.pools) {
+    const poolAddress = await getBPoolAddress(pool, deployment, deployments);
+    await balancerExternalTokenRouter.addPool(poolAddress);
 
-    for (const asset of pool.assets) {
-      const ercDeployment = `${asset.symbol}ERC20`;
-      await execute(
-        ercDeployment,
-        execOptions,
-        "approve",
-        gyroLibDeployment.address,
-        amountApproved
-      );
-    }
+    // const tokenAddresses = await getTokensAddresses(deployment.tokens, deployment, deployments);
+    // for (const tokenAddress of tokenAddresses) {
+    //   const tokenContract = ERC20__factory.connect(tokenAddress, deployer);
+    //   tokenContract.approve(gyroLibDeployment.address, amountApproved);
+    // }
   }
 };
 

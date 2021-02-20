@@ -27,3 +27,8 @@ interface UniswapAnchoredView {
         view
         returns (TokenConfig memory);
 }
+
+contract DummyUniswapAnchoredView {
+    mapping(string => uint256) private prices;
+    mapping(string => TokenConfig) private tokenConfigs;
+}
