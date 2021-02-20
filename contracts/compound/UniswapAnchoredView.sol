@@ -2,6 +2,8 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "../Ownable.sol";
+
 enum PriceSource {
     FIXED_ETH, /// implies the fixedPrice is a constant multiple of the ETH price (which varies)
     FIXED_USD, /// implies the fixedPrice is a constant multiple of the USD price (which is 1)
@@ -28,7 +30,31 @@ interface UniswapAnchoredView {
         returns (TokenConfig memory);
 }
 
-contract DummyUniswapAnchoredView {
+contract DummyUniswapAnchoredView is Ownable, UniswapAnchoredView {
     mapping(string => uint256) private prices;
     mapping(string => TokenConfig) private tokenConfigs;
+    mapping(string => bool) private tokenRegistered;
+
+    function addToken(string memory symbol, TokenConfig memory config) public onlyOwner {
+        tokenRegistered[symbol] = true;
+        tokenConfigs[symbol] = config;
+    }
+
+    function setPrice(string memory symbol, uint256 _price) public onlyOwner {
+        require(tokenRegistered[symbol], "symbol not registered");
+        prices[symbol] = _price;
+    }
+
+    function price(string calldata symbol) external view override returns (uint256) {
+        return prices[symbol];
+    }
+
+    function getTokenConfigBySymbol(string memory symbol)
+        external
+        view
+        override
+        returns (TokenConfig memory)
+    {
+        return tokenConfigs[symbol];
+    }
 }

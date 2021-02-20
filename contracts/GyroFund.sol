@@ -68,9 +68,10 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     GyroRouter public gyroRouter;
     PriceOracle public priceOracle;
 
+    uint16 private nextTokenIndex = 0;
     struct TokenProperties {
         address oracleAddress;
-        bytes32 tokenSymbol;
+        string tokenSymbol;
         uint16 tokenIndex;
     }
 
@@ -125,14 +126,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     constructor(
         uint256 _portfolioWeightEpsilon,
-        uint256[] memory _initialPoolWeights,
-        address[] memory _gyroPoolAddresses,
         address _priceOracleAddress,
         address _routerAddress,
-        address[] memory _underlyingTokenAddresses,
-        address[] memory _underlyingTokenOracleAddresses,
-        bytes32[] memory _underlyingTokenSymbols,
-        address[] memory _stablecoinAddresses,
         uint256 _memoryParam
     ) ERC20("Gyro Stable Coin", "GYRO") Ownable() {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
@@ -143,61 +138,59 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         outflowHistory = 0;
         memoryParam = _memoryParam;
 
-        underlyingTokenAddresses = _underlyingTokenAddresses;
-
         portfolioWeightEpsilon = _portfolioWeightEpsilon;
+    }
 
-        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
-            _checkPoolIsValid[_gyroPoolAddresses[i]] = true;
+    function addToken(
+        address tokenAddress,
+        address oracleAddress,
+        bool isStable
+    ) external onlyOwner {
+        for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
+            require(underlyingTokenAddresses[i] != tokenAddress, "this token already exists");
         }
 
-        for (uint256 i = 0; i < _gyroPoolAddresses.length; i++) {
-            poolProperties.push(
-                PoolProperties({
-                    poolAddress: _gyroPoolAddresses[i],
-                    initialPoolWeight: _initialPoolWeights[i],
-                    initialPoolPrice: 0
-                })
-            );
-        }
+        _checkIsStablecoin[tokenAddress] = isStable;
+        string memory tokenSymbol = ERC20(tokenAddress).symbol();
+        _tokenAddressToProperties[tokenAddress] = TokenProperties({
+            oracleAddress: oracleAddress,
+            tokenSymbol: tokenSymbol,
+            tokenIndex: nextTokenIndex
+        });
+        underlyingTokenAddresses.push(tokenAddress);
+    }
 
-        for (uint256 i = 0; i < _underlyingTokenAddresses.length; i++) {
-            _tokenAddressToProperties[_underlyingTokenAddresses[i]] = TokenProperties({
-                oracleAddress: _underlyingTokenOracleAddresses[i],
-                tokenSymbol: _underlyingTokenSymbols[i],
-                tokenIndex: uint16(i)
-            });
-        }
-
-        // Calculate BPT prices for all pools
-        uint256[] memory _underlyingPrices = getAllTokenPrices();
-
+    function addPool(address _bpoolAddress, uint256 _initialPoolWeight) external onlyOwner {
+        // check we do not already have this pool
         for (uint256 i = 0; i < poolProperties.length; i++) {
-            BPool _bPool = BPool(poolProperties[i].poolAddress);
-
-            //For each pool get the addresses of the underlying tokens
-            address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
-
-            //For each pool fill the underlying token prices array
-            uint256[] memory _bPoolUnderlyingTokenPrices =
-                new uint256[](_bPoolUnderlyingTokens.length);
-            for (uint256 j = 0; j < _bPoolUnderlyingTokens.length; j++) {
-                _bPoolUnderlyingTokenPrices[j] = _underlyingPrices[
-                    _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
-                ];
-            }
-
-            // Calculate BPT price for the pool
-            address poolAddress = poolProperties[i].poolAddress;
-            poolProperties[i].initialPoolPrice = gyroPriceOracle.getBPTPrice(
-                poolAddress,
-                _bPoolUnderlyingTokenPrices
-            );
+            require(poolProperties[i].poolAddress != _bpoolAddress, "this pool already exists");
         }
 
-        for (uint256 i = 0; i < _stablecoinAddresses.length; i++) {
-            _checkIsStablecoin[_stablecoinAddresses[i]] = true;
+        BPool _bPool = BPool(_bpoolAddress);
+        _checkPoolIsValid[_bpoolAddress] = true;
+
+        // get the addresses of the underlying tokens
+        address[] memory _bPoolUnderlyingTokens = _bPool.getFinalTokens();
+
+        // fill the underlying token prices array
+        uint256[] memory _bPoolUnderlyingTokenPrices = new uint256[](_bPoolUnderlyingTokens.length);
+        for (uint256 i = 0; i < _bPoolUnderlyingTokens.length; i++) {
+            address tokenAddress = _bPoolUnderlyingTokens[i];
+            string memory tokenSymbol = ERC20(tokenAddress).symbol();
+            _bPoolUnderlyingTokenPrices[i] = getPrice(tokenAddress, tokenSymbol);
         }
+
+        // Calculate BPT price for the pool
+        uint256 initialPoolPrice =
+            gyroPriceOracle.getBPTPrice(_bpoolAddress, _bPoolUnderlyingTokenPrices);
+
+        poolProperties.push(
+            PoolProperties({
+                poolAddress: _bpoolAddress,
+                initialPoolWeight: _initialPoolWeight,
+                initialPoolPrice: initialPoolPrice
+            })
+        );
     }
 
     function calculateImpliedPoolWeights(uint256[] memory _BPTPrices)
@@ -301,11 +294,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         }
     }
 
-    function getPrice(address _token, bytes32 _tokenSymbol) internal view returns (uint256) {
-        return
-            PriceOracle(_tokenAddressToProperties[_token].oracleAddress).getPrice(
-                bytes32ToString(_tokenSymbol)
-            );
+    function getPrice(address _token, string memory _tokenSymbol) internal view returns (uint256) {
+        return PriceOracle(_tokenAddressToProperties[_token].oracleAddress).getPrice(_tokenSymbol);
     }
 
     function bytes32ToString(bytes32 x) private pure returns (string memory) {
@@ -329,7 +319,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
             address _tokenAddress = underlyingTokenAddresses[i];
-            bytes32 _tokenSymbol =
+            string memory _tokenSymbol =
                 _tokenAddressToProperties[underlyingTokenAddresses[i]].tokenSymbol;
             uint256 _tokenPrice = getPrice(_tokenAddress, _tokenSymbol);
             _allUnderlyingPrices[i] = _tokenPrice;
