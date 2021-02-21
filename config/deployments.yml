@@ -4,7 +4,6 @@ tokens:
     symbol: "WETH"
     decimals: 18
     balance: 1000
-    price: 1850000000
     mintAmount: 1
     stable: false
   USDC:
@@ -12,7 +11,6 @@ tokens:
     symbol: "USDC"
     decimals: 6
     balance: 1000
-    price: 1000000
     mintAmount: 1000
     stable: true
   DAI:
@@ -20,7 +18,6 @@ tokens:
     symbol: "DAI"
     decimals: 18
     balance: 1000
-    price: 1000000
     mintAmount: 1000
     stable: true
 
@@ -50,26 +47,32 @@ deployments:
   localhost:
     pools:
       - name: usdc_weth
+        weight: 50
       - name: weth_dai
+        weight: 50
     tokens:
       - symbol: WETH
       - symbol: USDC
       - symbol: DAI
     oracles:
       - name: UniswapAnchoredView
+        contract: DummyUniswapAnchoredView
         args: []
-      - name: "DummyPriceWrapper"
-        args: []
+        ownable: true
+      - name: "CompoundPriceWrapper"
+        args: ["address:UniswapAnchoredView"]
     tokenOracles:
-      WETH: DummyPriceWrapper
-      USDC: DummyPriceWrapper
-      DAI: DummyPriceWrapper
+      WETH: CompoundPriceWrapper
+      USDC: CompoundPriceWrapper
+      DAI: CompoundPriceWrapper
     memoryParam: "999993123563518195"
 
   kovan:
     pools:
       - name: usdc_weth
+        weight: 50
       - name: weth_dai
+        weight: 50
     bfactory: "0x8f7F78080219d4066A8036ccD30D588B416a40DB"
     tokens:
       - symbol: WETH

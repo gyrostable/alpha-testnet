@@ -3,10 +3,11 @@ import "hardhat-deploy";
 import "hardhat-typechain";
 import { HardhatUserConfig } from "hardhat/config";
 
-require('dotenv').config()
+require("dotenv").config();
 
-const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID || "1b672091002241c994a21e8d4083fbd5";
-const INFURA_PROJECT_SECRET = process.env.INFURA_PROJECT_SECRET;
+export const INFURA_PROJECT_ID =
+  process.env.INFURA_PROJECT_ID || "1b672091002241c994a21e8d4083fbd5";
+export const INFURA_PROJECT_SECRET = process.env.INFURA_PROJECT_SECRET;
 const KOVAN_PRIVATE_KEY = process.env.KOVAN_PRIVATE_KEY;
 
 const config: HardhatUserConfig = {

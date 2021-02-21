@@ -11,7 +11,6 @@ export interface Token {
   symbol: string;
   decimals: number;
   balance: number;
-  price: number;
   mintAmount: number;
   stable: boolean;
 }
@@ -29,14 +28,23 @@ export interface TokenConfig {
 
 export interface PoolConfig {
   name: string;
+  weight: number;
   address?: string;
+}
+
+export interface OracleConfig {
+  name: string;
+  args: string[];
+  ownable?: boolean;
+  address?: string;
+  contract?: string;
 }
 
 export interface Deployment {
   pools: PoolConfig[];
   tokens: TokenConfig[];
   bfactory?: string;
-  oracles: { name: string; args: string[] }[];
+  oracles: OracleConfig[];
   tokenOracles: Record<string, string>;
   memoryParam: string;
 }
@@ -100,6 +108,22 @@ export async function getTokenAddress(
   const tokenDeploymentName = getTokenDeploymentName(symbol);
   const tokenDeployment = await deployments.get(tokenDeploymentName);
   return tokenDeployment.address;
+}
+
+export async function getOracleAddress(
+  oracleName: string,
+  deployment: Deployment,
+  deployments: DeploymentsExtension
+): Promise<string> {
+  const oracle = deployment.oracles.find((n) => n.name === oracleName);
+  if (!oracle) {
+    throw new Error(`oracle ${oracleName} not found in current deployment`);
+  }
+  if (oracle.address) {
+    return oracle.address;
+  }
+  const oracleDeployment = await deployments.get(oracleName);
+  return oracleDeployment.address;
 }
 
 export async function getTokensAddresses(
