@@ -128,7 +128,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address _priceOracleAddress,
         address _routerAddress,
         uint256 _memoryParam
-    ) ERC20("Gyro Dollar", "USDg") Ownable() {
+    ) ERC20("Gyro Dollar", "GYD") Ownable() {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
 
