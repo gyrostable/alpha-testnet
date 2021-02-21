@@ -147,7 +147,7 @@ contract CompoundPriceWrapper is PriceOracle {
     using SafeMath for uint256;
 
     uint256 public constant oraclePriceScale = 1000000;
-    address compoundOracle;
+    address public compoundOracle;
 
     constructor(address _compoundOracle) {
         compoundOracle = _compoundOracle;

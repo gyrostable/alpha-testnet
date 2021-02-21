@@ -33,7 +33,7 @@ interface UniswapAnchoredView {
 contract DummyUniswapAnchoredView is Ownable, UniswapAnchoredView {
     mapping(string => uint256) private prices;
     mapping(string => TokenConfig) private tokenConfigs;
-    mapping(string => bool) private tokenRegistered;
+    mapping(string => bool) public tokenRegistered;
 
     function addToken(string memory symbol, TokenConfig memory config) public onlyOwner {
         tokenRegistered[symbol] = true;

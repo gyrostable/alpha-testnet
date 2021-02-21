@@ -68,7 +68,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     GyroRouter public gyroRouter;
     PriceOracle public priceOracle;
 
-    uint16 private nextTokenIndex = 0;
     struct TokenProperties {
         address oracleAddress;
         string tokenSymbol;
@@ -155,7 +154,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         _tokenAddressToProperties[tokenAddress] = TokenProperties({
             oracleAddress: oracleAddress,
             tokenSymbol: tokenSymbol,
-            tokenIndex: nextTokenIndex
+            tokenIndex: uint16(underlyingTokenAddresses.length)
         });
         underlyingTokenAddresses.push(tokenAddress);
     }
@@ -244,7 +243,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         pure
         returns (uint256[] memory, uint256)
     {
-        uint256[] memory _weights;
+        uint256[] memory _weights = new uint256[](_BPTPrices.length);
         uint256 _totalPortfolioValue = 0;
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
@@ -256,8 +255,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         if (_totalPortfolioValue == 0) {
             return (_weights, _totalPortfolioValue);
         }
-
-        _weights = new uint256[](_BPTPrices.length);
 
         for (uint256 i = 0; i < _BPTAmounts.length; i++) {
             _weights[i] = _BPTAmounts[i].scaledMul(_BPTPrices[i]).scaledDiv(_totalPortfolioValue);
@@ -325,10 +322,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _allUnderlyingPrices[i] = _tokenPrice;
         }
         return _allUnderlyingPrices;
-    }
-
-    function registerToken(address token, address oracleAddress) external {
-        _tokenAddressToProperties[token].oracleAddress = oracleAddress;
     }
 
     function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices)

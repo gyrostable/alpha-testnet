@@ -2,7 +2,6 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import BPoolArtifact from "../artifacts/contracts/balancer/BPool.sol/BPool.json";
-import initConfig from "../config/initialization.json";
 import {
   getBFactoryAddress,
   getDeploymentConfig,
@@ -18,10 +17,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments } = hre;
   const { save } = deployments;
 
-  const { deployment, pools } = await getDeploymentConfig(hre.network.name);
+  const { deployment, pools, tokens } = await getDeploymentConfig(hre.network.name);
 
   const allDeployments = await deployments.all();
-  const tokens = Object.fromEntries(initConfig.tokens.map((t) => [t.symbol, t]));
 
   const bFactoryAddress = await getBFactoryAddress(deployment, deployments);
   const bFactory = BFactory__factory.connect(bFactoryAddress, deployer);
@@ -58,23 +56,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       receipt,
       abi: BPoolArtifact.abi,
     });
-
-    const poolContract = BPool__factory.connect(address, deployer);
-
-    for (const asset of pool.assets) {
-      const token = tokens[asset.symbol];
-      // 10 ^ (decimals + 6): 6 is the precision of price and is canceled by / token.price
-      const balance = scale(asset.amount, token.decimals + 6).div(token.price);
-      const tokenAddress = await getTokenAddress(token.symbol, deployment, deployments);
-      const denorm = scale(asset.weight, 18);
-      const tokenContract = ERC20__factory.connect(tokenAddress, deployer);
-      await tokenContract.approve(address, balance);
-      await poolContract.bind(tokenAddress, balance, denorm);
-    }
-
-    const swapFee = scale(pool.swap_fee, 12);
-    await poolContract.setSwapFee(swapFee);
-    await poolContract.finalize();
   }
 };
 

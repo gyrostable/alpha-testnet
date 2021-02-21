@@ -1,6 +1,7 @@
 // import deploymentsConfig from "../config/deployments.json";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
+import { DeployOptions } from "hardhat-deploy/dist/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { getDeploymentConfig, scale, transformArgs } from "../misc/deployment-utils";
@@ -43,14 +44,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   // ERC20 token price oracles
-  for (const { name, args } of deployment.oracles) {
-    const transformedArgs = await transformArgs(args, deployments);
-    await deploy(name, {
+  for (const oracleConfig of deployment.oracles) {
+    if (oracleConfig.address) {
+      continue;
+    }
+    const transformedArgs = await transformArgs(oracleConfig.args, deployments);
+    const oracleDeploymentConfig: DeployOptions = {
       from: deployer.address,
       args: transformedArgs,
       log: true,
       deterministicDeployment: true,
-    });
+    };
+    if (oracleConfig.contract) {
+      oracleDeploymentConfig["contract"] = oracleConfig.contract;
+    }
+    const priceOracleDeployment = await deploy(oracleConfig.name, oracleDeploymentConfig);
+    if (priceOracleDeployment.newlyDeployed && oracleConfig.ownable) {
+      await execute(oracleConfig.name, { from: deployer.address }, "initializeOwner");
+    }
   }
 
   const fundParams = [
