@@ -15,7 +15,9 @@ pragma solidity ^0.7.0;
 
 // Test Token
 
-contract TokenFaucet {
+import "./Ownable.sol";
+
+contract TokenFaucet is Ownable {
     string public name;
     string public symbol;
     uint8 public decimals;
@@ -29,12 +31,7 @@ contract TokenFaucet {
     mapping(address => uint256) private lastAccessTime;
 
     uint256 private constant waitTime = 30 minutes;
-    uint256 private mintAmt;
-
-    modifier _onlyOwner_() {
-        require(msg.sender == _owner, "ERR_NOT_OWNER");
-        _;
-    }
+    uint256 public mintAmt;
 
     event Approval(address indexed src, address indexed dst, uint256 amt);
     event Transfer(address indexed src, address indexed dst, uint256 amt);
@@ -60,9 +57,8 @@ contract TokenFaucet {
         mintAmt = _mintAmt;
     }
 
-    function initializeOwner() public {
-        require(_owner == address(0), "owner is already initialized");
-        _owner = msg.sender;
+    function setMintAmount(uint256 _mintAmount) external onlyOwner {
+        mintAmt = _mintAmount;
     }
 
     function _move(
@@ -108,7 +104,7 @@ contract TokenFaucet {
         return true;
     }
 
-    function mintAsOwner(address dst, uint256 amt) public _onlyOwner_ returns (bool) {
+    function mintAsOwner(address dst, uint256 amt) public onlyOwner returns (bool) {
         _mint(dst, amt);
         return true;
     }

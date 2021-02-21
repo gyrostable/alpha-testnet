@@ -38,6 +38,11 @@ async function main() {
       // token.decimals and tokenPrice have the same scale
       const balance = scale(asset.amount, token.decimals * 2).div(tokenPrice);
       const tokenAddress = await getTokenAddress(token.symbol, deployment, deployments);
+      const isBound = await poolContract.isBound(tokenAddress);
+      if (isBound) {
+        console.log(`${token.symbol} already bound, continuing`);
+        continue;
+      }
 
       const denorm = scale(asset.weight, 18);
       const tokenContract = ERC20__factory.connect(tokenAddress, signer);

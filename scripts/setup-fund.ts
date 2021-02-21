@@ -26,12 +26,18 @@ async function main() {
     signer
   );
 
+  const tokenAddresses = await gyroFund.getUnderlyingTokenAddresses();
+
   for (const tokenConfig of deployment.tokens) {
     const token = tokens[tokenConfig.symbol];
     if (!token) {
       throw new Error(`could not find config for token ${tokenConfig.symbol}`);
     }
     const tokenAddress = await getTokenAddress(tokenConfig, deployment, deployments);
+    if (tokenAddresses.includes(tokenAddress)) {
+      console.log(`${token.symbol} already registered, skipping`);
+      continue;
+    }
     const oracleName = deployment.tokenOracles[token.symbol];
     const oracleAddress = await getOracleAddress(oracleName, deployment, deployments);
     await gyroFund.addToken(tokenAddress, oracleAddress, token.stable);
@@ -42,12 +48,18 @@ async function main() {
     throw new Error(`pools weights sum to ${totalWeight} instead of 100`);
   }
 
+  const poolAddresses = await gyroFund.poolAddresses();
+
   for (const poolConfig of deployment.pools) {
     const pool = pools[poolConfig.name];
     if (!pool) {
       throw new Error(`could not find config for pool ${poolConfig.name}`);
     }
     const poolAddress = await getBPoolAddress(poolConfig, deployment, deployments);
+    if (poolAddresses.includes(poolAddress)) {
+      console.log(`${pool.name} already registered, skipping`);
+      continue;
+    }
     const weight = scale(poolConfig.weight).div(100); // poolConfig.weight is a percentage
     await gyroFund.addPool(poolAddress, weight);
     await balancerExternalTokenRouter.addPool(poolAddress);

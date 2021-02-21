@@ -1,0 +1,426 @@
+{
+  "address": "0x4F6b9CA115553b7b3e9fB614cfBe8D534C0B2fa5",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "cToken",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "symbolHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "baseUnit",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum PriceSource",
+              "name": "priceSource",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "uniswapMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "isUniswapReversed",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct TokenConfig",
+          "name": "config",
+          "type": "tuple"
+        }
+      ],
+      "name": "addToken",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "symbol",
+          "type": "string"
+        }
+      ],
+      "name": "getTokenConfigBySymbol",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "cToken",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "symbolHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "baseUnit",
+              "type": "uint256"
+            },
+            {
+              "internalType": "enum PriceSource",
+              "name": "priceSource",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fixedPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "uniswapMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "isUniswapReversed",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct TokenConfig",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initializeOwner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "symbol",
+          "type": "string"
+        }
+      ],
+      "name": "price",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_price",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "tokenRegistered",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "args": [],
+  "solcInputHash": "54f336ed4b86a6191c58c328b1e71360",
+  "metadata": "{\"compiler\":{\"version\":\"0.7.6+commit.7338295f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"cToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"underlying\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"symbolHash\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"baseUnit\",\"type\":\"uint256\"},{\"internalType\":\"enum PriceSource\",\"name\":\"priceSource\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"fixedPrice\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"uniswapMarket\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isUniswapReversed\",\"type\":\"bool\"}],\"internalType\":\"struct TokenConfig\",\"name\":\"config\",\"type\":\"tuple\"}],\"name\":\"addToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"}],\"name\":\"getTokenConfigBySymbol\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"cToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"underlying\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"symbolHash\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"baseUnit\",\"type\":\"uint256\"},{\"internalType\":\"enum PriceSource\",\"name\":\"priceSource\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"fixedPrice\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"uniswapMarket\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isUniswapReversed\",\"type\":\"bool\"}],\"internalType\":\"struct TokenConfig\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initializeOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"}],\"name\":\"price\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"_price\",\"type\":\"uint256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"name\":\"tokenRegistered\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/compound/UniswapAnchoredView.sol\":\"DummyUniswapAnchoredView\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.7.0;\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view returns (address) {\\n        return _owner;\\n    }\\n\\n    function initializeOwner() external {\\n        require(_owner == address(0), \\\"owner already initialized\\\");\\n        _owner = msg.sender;\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        require(_owner == msg.sender, \\\"Ownable: caller is not the owner\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        emit OwnershipTransferred(_owner, address(0));\\n        _owner = address(0);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        emit OwnershipTransferred(_owner, newOwner);\\n        _owner = newOwner;\\n    }\\n}\\n\",\"keccak256\":\"0x8ce2fd266470f41ea749996d52c28d3486ed19766178a46e9991683b60129bb7\",\"license\":\"MIT\"},\"contracts/compound/UniswapAnchoredView.sol\":{\"content\":\"//SPDX-License-Identifier: Unlicense\\npragma solidity ^0.7.0;\\npragma experimental ABIEncoderV2;\\n\\nimport \\\"../Ownable.sol\\\";\\n\\nenum PriceSource {\\n    FIXED_ETH, /// implies the fixedPrice is a constant multiple of the ETH price (which varies)\\n    FIXED_USD, /// implies the fixedPrice is a constant multiple of the USD price (which is 1)\\n    REPORTER /// implies the price is set by the reporter\\n}\\n\\nstruct TokenConfig {\\n    address cToken;\\n    address underlying;\\n    bytes32 symbolHash;\\n    uint256 baseUnit;\\n    PriceSource priceSource;\\n    uint256 fixedPrice;\\n    address uniswapMarket;\\n    bool isUniswapReversed;\\n}\\n\\ninterface UniswapAnchoredView {\\n    function price(string calldata symbol) external view returns (uint256);\\n\\n    function getTokenConfigBySymbol(string memory symbol)\\n        external\\n        view\\n        returns (TokenConfig memory);\\n}\\n\\ncontract DummyUniswapAnchoredView is Ownable, UniswapAnchoredView {\\n    mapping(string => uint256) private prices;\\n    mapping(string => TokenConfig) private tokenConfigs;\\n    mapping(string => bool) public tokenRegistered;\\n\\n    function addToken(string memory symbol, TokenConfig memory config) public onlyOwner {\\n        tokenRegistered[symbol] = true;\\n        tokenConfigs[symbol] = config;\\n    }\\n\\n    function setPrice(string memory symbol, uint256 _price) public onlyOwner {\\n        require(tokenRegistered[symbol], \\\"symbol not registered\\\");\\n        prices[symbol] = _price;\\n    }\\n\\n    function price(string calldata symbol) external view override returns (uint256) {\\n        return prices[symbol];\\n    }\\n\\n    function getTokenConfigBySymbol(string memory symbol)\\n        external\\n        view\\n        override\\n        returns (TokenConfig memory)\\n    {\\n        return tokenConfigs[symbol];\\n    }\\n}\\n\",\"keccak256\":\"0x317bedbbaeb93083a5beaabadf56a35be96d8e72153840c0d13d8af5c7e3e446\",\"license\":\"Unlicense\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50610b26806100206000396000f3fe608060405234801561001057600080fd5b50600436106100935760003560e01c80635f53837f116100665780635f53837f14610109578063715018a6146101115780638da5cb5b14610119578063f2fde38b1461012e578063fe2c61981461014157610093565b806322e0119214610098578063276c2cba146100ad5780632c445b6c146100d65780632da76a99146100e9575b600080fd5b6100ab6100a6366004610932565b610161565b005b6100c06100bb366004610814565b61021b565b6040516100cd9190610a1f565b60405180910390f35b6100ab6100e436600461084f565b6102de565b6100fc6100f7366004610814565b610446565b6040516100cd91906109e5565b6100ab610466565b6100ab6104d8565b61012161056f565b6040516100cd91906109d1565b6100ab61013c366004610786565b61057e565b61015461014f3660046107a7565b61066b565b6040516100cd9190610aa1565b6000546001600160a01b031633146101ae576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b6003826040516101be9190610998565b9081526040519081900360200190205460ff166101f65760405162461bcd60e51b81526004016101ed906109f0565b60405180910390fd5b806001836040516102079190610998565b908152604051908190036020019020555050565b610223610696565b6002826040516102339190610998565b9081526040805191829003602090810183206101008401835280546001600160a01b03908116855260018201541691840191909152600280820154928401929092526003810154606084015260048101549091608084019160ff169081111561029857fe5b60028111156102a357fe5b8152600582015460208201526006909101546001600160a01b0381166040830152600160a01b900460ff16151560609091015290505b919050565b6000546001600160a01b0316331461032b576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b600160038360405161033d9190610998565b908152604051908190036020018120805492151560ff1990931692909217909155819060029061036e908590610998565b9081526040805160209281900383019020835181546001600160a01b03199081166001600160a01b03928316178355938501516001808401805490961691909216179093559083015160028083019190915560608401516003830155608084015160048301805493949193909260ff19909116919084908111156103ee57fe5b021790555060a0820151600582015560c08201516006909101805460e0909301511515600160a01b0260ff60a01b196001600160a01b039093166001600160a01b031990941693909317919091169190911790555050565b805160208183018101805160038252928201919093012091525460ff1681565b6000546001600160a01b0316156104c4576040805162461bcd60e51b815260206004820152601960248201527f6f776e657220616c726561647920696e697469616c697a656400000000000000604482015290519081900360640190fd5b600080546001600160a01b03191633179055565b6000546001600160a01b03163314610525576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b031633146105cb576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b6001600160a01b0381166106105760405162461bcd60e51b8152600401808060200182810382526026815260200180610aab6026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b60006001838360405161067f929190610988565b908152602001604051809103902054905092915050565b60408051610100810182526000808252602082018190529181018290526060810182905290608082019081526000602082018190526040820181905260609091015290565b80356001600160a01b03811681146102d957600080fd5b803580151581146102d957600080fd5b8035600381106102d957600080fd5b600082601f830112610721578081fd5b813567ffffffffffffffff8082111561073657fe5b604051601f8301601f19168101602001828111828210171561075457fe5b60405282815284830160200186101561076b578384fd5b82602086016020830137918201602001929092529392505050565b600060208284031215610797578081fd5b6107a0826106db565b9392505050565b600080602083850312156107b9578081fd5b823567ffffffffffffffff808211156107d0578283fd5b818501915085601f8301126107e3578283fd5b8135818111156107f1578384fd5b866020828501011115610802578384fd5b60209290920196919550909350505050565b600060208284031215610825578081fd5b813567ffffffffffffffff81111561083b578182fd5b61084784828501610711565b949350505050565b600080828403610120811215610863578283fd5b833567ffffffffffffffff8082111561087a578485fd5b61088687838801610711565b9450610100915081601f198401121561089d578384fd5b604051925081830183811082821117156108b357fe5b604052506108c3602086016106db565b82526108d1604086016106db565b602083015260608501356040830152608085013560608301526108f660a08601610702565b608083015260c085013560a083015261091160e086016106db565b60c08301526109218186016106f2565b60e083015250809150509250929050565b60008060408385031215610944578182fd5b823567ffffffffffffffff81111561095a578283fd5b61096685828601610711565b95602094909401359450505050565b6001600160a01b03169052565b15159052565b6000828483379101908152919050565b60008251815b818110156109b8576020818601810151858301520161099e565b818111156109c65782828501525b509190910192915050565b6001600160a01b0391909116815260200190565b901515815260200190565b6020808252601590820152741cde5b589bdb081b9bdd081c9959da5cdd195c9959605a1b604082015260600190565b81516001600160a01b039081168252602080840151909116908201526040808301519082015260608083015190820152608082015161010082019060038110610a6457fe5b8060808401525060a083015160a083015260c0830151610a8760c0840182610975565b5060e0830151610a9a60e0840182610982565b5092915050565b9081526020019056fe4f776e61626c653a206e6577206f776e657220697320746865207a65726f20616464726573734f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572a264697066735822122032e142a3f40adf26e2018fb91bd10fc963d32ac0b2b19f4959f1b2efd0e79eaa64736f6c63430007060033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100935760003560e01c80635f53837f116100665780635f53837f14610109578063715018a6146101115780638da5cb5b14610119578063f2fde38b1461012e578063fe2c61981461014157610093565b806322e0119214610098578063276c2cba146100ad5780632c445b6c146100d65780632da76a99146100e9575b600080fd5b6100ab6100a6366004610932565b610161565b005b6100c06100bb366004610814565b61021b565b6040516100cd9190610a1f565b60405180910390f35b6100ab6100e436600461084f565b6102de565b6100fc6100f7366004610814565b610446565b6040516100cd91906109e5565b6100ab610466565b6100ab6104d8565b61012161056f565b6040516100cd91906109d1565b6100ab61013c366004610786565b61057e565b61015461014f3660046107a7565b61066b565b6040516100cd9190610aa1565b6000546001600160a01b031633146101ae576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b6003826040516101be9190610998565b9081526040519081900360200190205460ff166101f65760405162461bcd60e51b81526004016101ed906109f0565b60405180910390fd5b806001836040516102079190610998565b908152604051908190036020019020555050565b610223610696565b6002826040516102339190610998565b9081526040805191829003602090810183206101008401835280546001600160a01b03908116855260018201541691840191909152600280820154928401929092526003810154606084015260048101549091608084019160ff169081111561029857fe5b60028111156102a357fe5b8152600582015460208201526006909101546001600160a01b0381166040830152600160a01b900460ff16151560609091015290505b919050565b6000546001600160a01b0316331461032b576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b600160038360405161033d9190610998565b908152604051908190036020018120805492151560ff1990931692909217909155819060029061036e908590610998565b9081526040805160209281900383019020835181546001600160a01b03199081166001600160a01b03928316178355938501516001808401805490961691909216179093559083015160028083019190915560608401516003830155608084015160048301805493949193909260ff19909116919084908111156103ee57fe5b021790555060a0820151600582015560c08201516006909101805460e0909301511515600160a01b0260ff60a01b196001600160a01b039093166001600160a01b031990941693909317919091169190911790555050565b805160208183018101805160038252928201919093012091525460ff1681565b6000546001600160a01b0316156104c4576040805162461bcd60e51b815260206004820152601960248201527f6f776e657220616c726561647920696e697469616c697a656400000000000000604482015290519081900360640190fd5b600080546001600160a01b03191633179055565b6000546001600160a01b03163314610525576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b031633146105cb576040805162461bcd60e51b81526020600482018190526024820152600080516020610ad1833981519152604482015290519081900360640190fd5b6001600160a01b0381166106105760405162461bcd60e51b8152600401808060200182810382526026815260200180610aab6026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b60006001838360405161067f929190610988565b908152602001604051809103902054905092915050565b60408051610100810182526000808252602082018190529181018290526060810182905290608082019081526000602082018190526040820181905260609091015290565b80356001600160a01b03811681146102d957600080fd5b803580151581146102d957600080fd5b8035600381106102d957600080fd5b600082601f830112610721578081fd5b813567ffffffffffffffff8082111561073657fe5b604051601f8301601f19168101602001828111828210171561075457fe5b60405282815284830160200186101561076b578384fd5b82602086016020830137918201602001929092529392505050565b600060208284031215610797578081fd5b6107a0826106db565b9392505050565b600080602083850312156107b9578081fd5b823567ffffffffffffffff808211156107d0578283fd5b818501915085601f8301126107e3578283fd5b8135818111156107f1578384fd5b866020828501011115610802578384fd5b60209290920196919550909350505050565b600060208284031215610825578081fd5b813567ffffffffffffffff81111561083b578182fd5b61084784828501610711565b949350505050565b600080828403610120811215610863578283fd5b833567ffffffffffffffff8082111561087a578485fd5b61088687838801610711565b9450610100915081601f198401121561089d578384fd5b604051925081830183811082821117156108b357fe5b604052506108c3602086016106db565b82526108d1604086016106db565b602083015260608501356040830152608085013560608301526108f660a08601610702565b608083015260c085013560a083015261091160e086016106db565b60c08301526109218186016106f2565b60e083015250809150509250929050565b60008060408385031215610944578182fd5b823567ffffffffffffffff81111561095a578283fd5b61096685828601610711565b95602094909401359450505050565b6001600160a01b03169052565b15159052565b6000828483379101908152919050565b60008251815b818110156109b8576020818601810151858301520161099e565b818111156109c65782828501525b509190910192915050565b6001600160a01b0391909116815260200190565b901515815260200190565b6020808252601590820152741cde5b589bdb081b9bdd081c9959da5cdd195c9959605a1b604082015260600190565b81516001600160a01b039081168252602080840151909116908201526040808301519082015260608083015190820152608082015161010082019060038110610a6457fe5b8060808401525060a083015160a083015260c0830151610a8760c0840182610975565b5060e0830151610a9a60e0840182610982565b5092915050565b9081526020019056fe4f776e61626c653a206e6577206f776e657220697320746865207a65726f20616464726573734f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572a264697066735822122032e142a3f40adf26e2018fb91bd10fc963d32ac0b2b19f4959f1b2efd0e79eaa64736f6c63430007060033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 8665,
+        "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 18501,
+        "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+        "label": "prices",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_string_memory_ptr,t_uint256)"
+      },
+      {
+        "astId": 18505,
+        "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+        "label": "tokenConfigs",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_string_memory_ptr,t_struct(TokenConfig)18478_storage)"
+      },
+      {
+        "astId": 18509,
+        "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+        "label": "tokenRegistered",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_string_memory_ptr,t_bool)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_enum(PriceSource)18461": {
+        "encoding": "inplace",
+        "label": "enum PriceSource",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_string_memory_ptr,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_string_memory_ptr",
+        "label": "mapping(string => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_string_memory_ptr,t_struct(TokenConfig)18478_storage)": {
+        "encoding": "mapping",
+        "key": "t_string_memory_ptr",
+        "label": "mapping(string => struct TokenConfig)",
+        "numberOfBytes": "32",
+        "value": "t_struct(TokenConfig)18478_storage"
+      },
+      "t_mapping(t_string_memory_ptr,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_string_memory_ptr",
+        "label": "mapping(string => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_string_memory_ptr": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_struct(TokenConfig)18478_storage": {
+        "encoding": "inplace",
+        "label": "struct TokenConfig",
+        "members": [
+          {
+            "astId": 18463,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "cToken",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address"
+          },
+          {
+            "astId": 18465,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "underlying",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 18467,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "symbolHash",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 18469,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "baseUnit",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 18471,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "priceSource",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_enum(PriceSource)18461"
+          },
+          {
+            "astId": 18473,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "fixedPrice",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 18475,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "uniswapMarket",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_address"
+          },
+          {
+            "astId": 18477,
+            "contract": "contracts/compound/UniswapAnchoredView.sol:DummyUniswapAnchoredView",
+            "label": "isUniswapReversed",
+            "offset": 20,
+            "slot": "6",
+            "type": "t_bool"
+          }
+        ],
+        "numberOfBytes": "224"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

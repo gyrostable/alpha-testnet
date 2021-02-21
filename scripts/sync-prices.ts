@@ -1,12 +1,15 @@
+import { BigNumber } from "ethers";
 import hre from "hardhat";
 import { INFURA_PROJECT_ID, INFURA_PROJECT_SECRET } from "../hardhat.config";
-import { getDeploymentConfig } from "../misc/deployment-utils";
+import { getDeploymentConfig, scale } from "../misc/deployment-utils";
 import { DummyUniswapAnchoredView__factory } from "../typechain/factories/DummyUniswapAnchoredView__factory";
 import { UniswapAnchoredView__factory } from "../typechain/factories/UniswapAnchoredView__factory";
 
 const { deployments, ethers } = hre;
 
 const mainnetUniswapAnchoredViewAddress = "0x922018674c12a7F0D394ebEEf9B58F186CdE13c1";
+
+const gasPrice = scale(2, 9);
 
 const infuraMainnetProvider = new ethers.providers.InfuraProvider("homestead", {
   projectId: INFURA_PROJECT_ID,
@@ -37,11 +40,11 @@ async function main() {
     if (!isRegistered) {
       console.log(`Registering ${symbol}`);
       const config = await mainnetOracle.getTokenConfigBySymbol(symbol);
-      await dummyOracle.addToken(symbol, config);
+      await dummyOracle.addToken(symbol, config, { gasPrice });
     }
     console.log(`Setting price for ${symbol}`);
     const price = await mainnetOracle.price(symbol);
-    await dummyOracle.setPrice(symbol, price);
+    await dummyOracle.setPrice(symbol, price, { gasPrice });
   }
 }
 

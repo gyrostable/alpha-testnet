@@ -2,7 +2,7 @@ import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { getDeploymentConfig, getTokenDeploymentName, scale } from "../misc/deployment-utils";
+import { getDeploymentConfig, getTokenDeploymentName } from "../misc/deployment-utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const [deployer] = await ethers.getSigners();
@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const deploymentResult = await deploy(deploymentName, {
       contract: "TokenFaucet",
       from: deployer.address,
-      args: [token.name, token.symbol, token.decimals, scale(token.mintAmount, token.decimals)],
+      args: [token.name, token.symbol, token.decimals, token.mintAmount],
       log: true,
       deterministicDeployment: true,
     });
