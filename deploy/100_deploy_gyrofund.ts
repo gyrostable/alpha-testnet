@@ -82,12 +82,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await execute("GyroFundV1", { from: deployer.address }, "initializeOwner");
   }
 
-  await deploy("GyroLib", {
+  const gyroLibDeployment = await deploy("GyroLib", {
     from: deployer.address,
     args: [gyroFundDeployment.address, balancerExternalTokenRouterDeployment.address],
     log: true,
     deterministicDeployment: true,
   });
+  if (gyroLibDeployment.newlyDeployed) {
+    await execute("GyroLib", { from: deployer.address }, "initializeOwner");
+  }
 };
 
 func.tags = ["fund"];

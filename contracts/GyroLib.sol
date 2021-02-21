@@ -3,14 +3,23 @@ pragma solidity ^0.7.0;
 
 import "./BalancerGyroRouter.sol";
 import "./GyroFund.sol";
+import "./Ownable.sol";
 
-contract GyroLib {
+contract GyroLib is Ownable {
     GyroFundV1 fund;
     BalancerExternalTokenRouter externalTokensRouter;
 
     constructor(address gyroFundAddress, address externalTokensRouterAddress) {
         fund = GyroFundV1(gyroFundAddress);
         externalTokensRouter = BalancerExternalTokenRouter(externalTokensRouterAddress);
+    }
+
+    function setFundAddress(address _fundAddress) external onlyOwner {
+        fund = GyroFundV1(_fundAddress);
+    }
+
+    function setRouterAddress(address _routerAddress) external onlyOwner {
+        externalTokensRouter = BalancerExternalTokenRouter(_routerAddress);
     }
 
     function mintFromUnderlyingTokens(
@@ -154,7 +163,15 @@ contract GyroLib {
         return fund.poolAddresses();
     }
 
-    function getReserveValues() external view returns (uint256, address[] memory, uint256[] memory) {
+    function getReserveValues()
+        external
+        view
+        returns (
+            uint256,
+            address[] memory,
+            uint256[] memory
+        )
+    {
         return fund.getReserveValues();
     }
 
