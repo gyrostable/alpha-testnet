@@ -13,17 +13,27 @@ async function main() {
   const poolAddresses = await gyroFund.poolAddresses();
 
   const amountIn = scale(20);
+
   for (const poolAddress of poolAddresses) {
     const pool = BPoolFactory.connect(poolAddress, account);
+    if ((await pool.allowance(account.address, gyroFund.address)).gte(amountIn)) {
+      continue;
+    }
     const balance = await pool.balanceOf(account.address);
     console.log(`balance in pool ${poolAddress}: ${balance.toString()}`);
-    await pool.approve(gyroFund.address, amountIn);
+    await pool.approve(gyroFund.address, BigNumber.from(10).pow(30));
   }
 
   const tx = await gyroFund.mintTest(
     poolAddresses,
     poolAddresses.map((_) => amountIn)
   );
+  // const tx = await gyroFund.mint(
+  //   poolAddresses,
+  //   poolAddresses.map((_) => amountIn),
+  //   0,
+  //   { gasLimit: 3_000_000 }
+  // );
   await tx.wait();
 
   const balance = await gyroFund.balanceOf(account.address);

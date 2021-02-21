@@ -114,7 +114,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     address[] underlyingTokenAddresses;
 
-    uint256 portfolioWeightEpsilon;
+    uint256 public portfolioWeightEpsilon;
     uint256 lastSeenBlock;
     uint256 inflowHistory;
     uint256 outflowHistory;
@@ -265,18 +265,24 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
     function checkStablecoinHealth(uint256 stablecoinPrice, address stablecoinAddress)
         internal
-        pure
+        view
         returns (bool)
     {
         // TODO: revisit
         //Price
         bool _stablecoinHealthy = true;
 
-        if (stablecoinPrice >= 1.05e18) {
+        uint256 decimals = ERC20(stablecoinAddress).decimals();
+
+        uint256 maxDeviation = 5 * 10**(decimals - 2);
+        uint256 idealPrice = 10**decimals;
+
+        if (stablecoinPrice >= idealPrice + maxDeviation) {
             _stablecoinHealthy = false;
-        } else if (stablecoinPrice <= 0.95e18) {
+        } else if (stablecoinPrice <= idealPrice - maxDeviation) {
             _stablecoinHealthy = false;
         }
+        console.log(stablecoinAddress, "health", _stablecoinHealthy);
 
         //Volume (to do)
 
@@ -342,9 +348,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
             _dollarValue = _dollarValue.add(_amountsIn[i].scaledMul(_currentBPTPrices[i]));
         }
 
-        console.log("dollar value", _dollarValue);
         uint256 _gyroToMint = gyroPriceOracle.getAmountToMint(_dollarValue, 0, 1e18);
-        console.log("gyro to mint", _gyroToMint);
 
         _mint(msg.sender, _gyroToMint);
         return _gyroToMint;
@@ -382,12 +386,11 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _currentBPTPrices;
     }
 
-    function poolHealthHelper(
-        uint256[] memory _allUnderlyingPrices,
-        uint256 _poolIndex,
-        address[] memory _BPTokensIn,
-        bool _allPoolsHealthy
-    ) internal view returns (bool, bool) {
+    function poolHealthHelper(uint256[] memory _allUnderlyingPrices, uint256 _poolIndex)
+        internal
+        view
+        returns (bool)
+    {
         bool _poolHealthy = true;
 
         BPool _bPool = BPool(poolProperties[_poolIndex].poolAddress);
@@ -401,15 +404,14 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
                         _tokenAddressToProperties[_bPoolUnderlyingTokens[j]].tokenIndex
                     ];
 
-                if (!checkStablecoinHealth(_stablecoinPrice, _BPTokensIn[_poolIndex])) {
+                if (!checkStablecoinHealth(_stablecoinPrice, _bPoolUnderlyingTokens[j])) {
                     _poolHealthy = false;
-                    _allPoolsHealthy = false;
                     break;
                 }
             }
         }
 
-        return (_poolHealthy, _allPoolsHealthy);
+        return _poolHealthy;
     }
 
     function checkPoolsWithinEpsilon(
@@ -463,12 +465,8 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         );
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
-            (_inputPoolHealth[i], _allPoolsHealthy) = poolHealthHelper(
-                _allUnderlyingPrices,
-                i,
-                _BPTokensIn,
-                _allPoolsHealthy
-            );
+            _inputPoolHealth[i] = poolHealthHelper(_allUnderlyingPrices, i);
+            _allPoolsHealthy = _allPoolsHealthy && _inputPoolHealth[i];
         }
 
         return (_allPoolsHealthy, _allPoolsWithinEpsilon, _inputPoolHealth, _poolsWithinEpsilon);
@@ -578,6 +576,12 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         );
 
         // if check 1 succeeds and all pools healthy, then proceed with minting
+        console.log(
+            "_allPoolsHealthy",
+            poolStatus._allPoolsHealthy,
+            "_allPoolsWithinEpsilon",
+            poolStatus._allPoolsWithinEpsilon
+        );
         if (poolStatus._allPoolsHealthy) {
             if (poolStatus._allPoolsWithinEpsilon) {
                 _launch = true;

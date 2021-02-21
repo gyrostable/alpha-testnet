@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers";
 import hre from "hardhat";
+import { getDeploymentConfig, getTokenAddress, scale } from "../misc/deployment-utils";
 import { ERC20__factory as ERC20Factory } from "../typechain/factories/ERC20__factory";
 import { GyroFund__factory as GyroFundFactory } from "../typechain/factories/GyroFund__factory";
 import { GyroLib__factory as GyroLibFactory } from "../typechain/factories/GyroLib__factory";
@@ -9,19 +10,23 @@ const ONE = BigNumber.from(10).pow(18);
 
 async function main() {
   const [account] = await ethers.getSigners();
-  const wethDeployment = await deployments.get("WETHERC20");
-  const daiDeployment = await deployments.get("DAIERC20");
+  const { deployment } = await getDeploymentConfig(hre.network.name);
+
+  const daiAddress = await getTokenAddress("DAI", deployment, deployments);
+  const usdcAddress = await getTokenAddress("USDC", deployment, deployments);
+
   const gyroLibDeployment = await deployments.get("GyroLib");
   const gyroFundDeployment = await deployments.get("GyroFundV1");
   const gyroFund = GyroFundFactory.connect(gyroFundDeployment.address, account);
   const gyroLib = GyroLibFactory.connect(gyroLibDeployment.address, account);
 
   const tokens = [
-    { name: "weth", address: wethDeployment.address, amount: ONE.mul(2) }, // 2 ETH
-    { name: "dai", address: daiDeployment.address, amount: ONE.mul(2500) }, // 2500 DAI
+    { name: "usdc", address: usdcAddress, amount: scale(100, 6) },
+    { name: "dai", address: daiAddress, amount: scale(100) },
   ];
-  for (const { address, amount } of tokens) {
+  for (const { name, address, amount } of tokens) {
     const erc20 = ERC20Factory.connect(address, account);
+    console.log(`balance ${name}`, (await erc20.balanceOf(account.address)).toString());
     await erc20.approve(gyroLib.address, amount);
   }
 
