@@ -35,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       { from: deployer.address },
       "mintAsOwner",
       deployer.address,
-      BigNumber.from(10).pow(token.decimals + 6) // 1M of each token
+      BigNumber.from(10).pow(token.decimals + 9) // 1B of each token
     );
   }
 };

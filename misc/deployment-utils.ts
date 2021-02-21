@@ -10,7 +10,6 @@ export interface Token {
   name: string;
   symbol: string;
   decimals: number;
-  balance: number;
   mintAmount: number;
   stable: boolean;
 }

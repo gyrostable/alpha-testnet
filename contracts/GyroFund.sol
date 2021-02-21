@@ -128,7 +128,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         address _priceOracleAddress,
         address _routerAddress,
         uint256 _memoryParam
-    ) ERC20("Gyro Stable Coin", "GYRO") Ownable() {
+    ) ERC20("Gyro Dollar", "USDg") Ownable() {
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
 
@@ -312,7 +312,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return string(bytesStringTrimmed);
     }
 
-    function getAllTokenPrices() internal view returns (uint256[] memory) {
+    function getAllTokenPrices() public view returns (uint256[] memory) {
         uint256[] memory _allUnderlyingPrices = new uint256[](underlyingTokenAddresses.length);
         for (uint256 i = 0; i < underlyingTokenAddresses.length; i++) {
             address _tokenAddress = underlyingTokenAddresses[i];
@@ -324,8 +324,34 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         return _allUnderlyingPrices;
     }
 
+    function mintTest(address[] memory _BPTokensIn, uint256[] memory _amountsIn)
+        public
+        onlyOwner
+        returns (uint256)
+    {
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            bool success =
+                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
+            require(success, "failed to transfer tokens, check allowance");
+        }
+        uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
+        uint256[] memory _currentBPTPrices = calculateAllPoolPrices(_allUnderlyingPrices);
+        uint256 _dollarValue = 0;
+
+        for (uint256 i = 0; i < _BPTokensIn.length; i++) {
+            _dollarValue = _dollarValue.add(_amountsIn[i].scaledMul(_currentBPTPrices[i]));
+        }
+
+        console.log("dollar value", _dollarValue);
+        uint256 _gyroToMint = gyroPriceOracle.getAmountToMint(_dollarValue, 0, 1e18);
+        console.log("gyro to mint", _gyroToMint);
+
+        _mint(msg.sender, _gyroToMint);
+        return _gyroToMint;
+    }
+
     function calculateAllPoolPrices(uint256[] memory _allUnderlyingPrices)
-        internal
+        public
         view
         returns (uint256[] memory)
     {

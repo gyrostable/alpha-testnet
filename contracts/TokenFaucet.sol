@@ -70,7 +70,7 @@ contract TokenFaucet {
         address dst,
         uint256 amt
     ) internal {
-        require(_balance[src] >= amt, "ERR_INSUFFICIENT_BAL");
+        require(_balance[src] >= amt, "ERR_INSUFFICIENT_BALANCE");
         _balance[src] = sub(_balance[src], amt);
         _balance[dst] = add(_balance[dst], amt);
         emit Transfer(src, dst, amt);

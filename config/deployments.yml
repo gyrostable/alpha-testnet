@@ -3,57 +3,80 @@ tokens:
     name: "Wrapped Ether"
     symbol: "WETH"
     decimals: 18
-    balance: 1000
     mintAmount: 1
     stable: false
   USDC:
     name: "USD Coin"
     symbol: "USDC"
     decimals: 6
-    balance: 1000
     mintAmount: 1000
     stable: true
   DAI:
     name: "Dai Stablecoin"
     symbol: "DAI"
     decimals: 18
-    balance: 1000
+    mintAmount: 1000
+    stable: true
+  sUSD:
+    name: "Synth sUSD"
+    symbol: "sUSD"
+    decimals: 18
+    mintAmount: 1000
+    stable: true
+  BUSD:
+    name: "Binance USD"
+    symbol: "BUSD"
+    decimals: 18
     mintAmount: 1000
     stable: true
 
 pools:
-  weth_dai:
-    name: weth_dai
-    assets:
-      - symbol: WETH
-        amount: 50000
-        weight: 5
-      - symbol: DAI
-        amount: 50000
-        weight: 5
-    swap_fee: 1000
-  usdc_weth:
-    name: usdc_weth
+  usdc_busd:
+    name: usdc_busd
     assets:
       - symbol: USDC
-        amount: 50000
+        amount: 50000000
+        weight: 5
+      - symbol: BUSD
+        amount: 50000000
+        weight: 5
+    swap_fee: 1000
+  dai_weth:
+    name: dai_weth
+    assets:
+      - symbol: DAI
+        amount: 50000000
         weight: 5
       - symbol: WETH
-        amount: 50000
+        amount: 50000000
+        weight: 5
+    swap_fee: 1000
+  susd_weth:
+    name: susd_weth
+    assets:
+      - symbol: sUSD
+        amount: 50000000
+        weight: 5
+      - symbol: WETH
+        amount: 50000000
         weight: 5
     swap_fee: 1000
 
 deployments:
   localhost:
     pools:
-      - name: usdc_weth
-        weight: 50
-      - name: weth_dai
-        weight: 50
+      - name: usdc_busd
+        weight: 34
+      - name: dai_weth
+        weight: 33
+      - name: susd_weth
+        weight: 33
     tokens:
       - symbol: WETH
       - symbol: USDC
       - symbol: DAI
+      - symbol: BUSD
+      - symbol: sUSD
     oracles:
       - name: UniswapAnchoredView
         contract: DummyUniswapAnchoredView
@@ -65,24 +88,36 @@ deployments:
       WETH: CompoundPriceWrapper
       USDC: CompoundPriceWrapper
       DAI: CompoundPriceWrapper
+      sUSD: CompoundPriceWrapper
+      BUSD: CompoundPriceWrapper
     memoryParam: "999993123563518195"
 
   kovan:
     pools:
-      - name: usdc_weth
-        weight: 50
-      - name: weth_dai
-        weight: 50
+      - name: usdc_busd
+        weight: 34
+      - name: dai_weth
+        weight: 33
+      - name: susd_weth
+        weight: 33
     bfactory: "0x8f7F78080219d4066A8036ccD30D588B416a40DB"
     tokens:
       - symbol: WETH
       - symbol: USDC
       - symbol: DAI
+      - symbol: BUSD
+      - symbol: sUSD
     oracles:
+      - name: UniswapAnchoredView
+        contract: DummyUniswapAnchoredView
+        args: []
+        ownable: true
       - name: "CompoundPriceWrapper"
-        args: ["0xbBdE93962Ca9fe39537eeA7380550ca6845F8db7"]
+        args: ["address:UniswapAnchoredView"]
     tokenOracles:
       WETH: CompoundPriceWrapper
       USDC: CompoundPriceWrapper
       DAI: CompoundPriceWrapper
+      sUSD: CompoundPriceWrapper
+      BUSD: CompoundPriceWrapper
     memoryParam: "999993123563518195"

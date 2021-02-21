@@ -26,10 +26,14 @@ async function main() {
   const dummyOracle = DummyUniswapAnchoredView__factory.connect(dummyOracleAddress, signer);
 
   for (let symbol in tokens) {
-    const isRegistered = await dummyOracle.tokenRegistered(symbol);
     if (symbol === "WETH") {
       symbol = "ETH";
     }
+
+    if (["sUSD", "BUSD"].includes(symbol)) {
+      symbol = "DAI";
+    }
+    const isRegistered = await dummyOracle.tokenRegistered(symbol);
     if (!isRegistered) {
       console.log(`Registering ${symbol}`);
       const config = await mainnetOracle.getTokenConfigBySymbol(symbol);

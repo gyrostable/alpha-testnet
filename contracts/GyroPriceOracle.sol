@@ -154,8 +154,13 @@ contract CompoundPriceWrapper is PriceOracle {
     }
 
     function getPrice(string memory tokenSymbol) public view override returns (uint256) {
-        if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("WETH"))) {
+        bytes32 symbolHash = keccak256(bytes(tokenSymbol));
+        if (symbolHash == keccak256(bytes("WETH"))) {
             tokenSymbol = "ETH";
+        }
+
+        if (symbolHash == keccak256(bytes("sUSD")) || symbolHash == keccak256(bytes("BUSD"))) {
+            tokenSymbol = "DAI";
         }
         UniswapAnchoredView oracle = UniswapAnchoredView(compoundOracle);
         uint256 unscaledPrice = oracle.price(tokenSymbol);
