@@ -1,5 +1,5 @@
 import { BigNumber, BigNumberish } from "ethers";
-import { readFile } from "fs/promises";
+import { promises as fs } from "fs";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 import path from "path";
 import yaml from "yaml";
@@ -55,7 +55,7 @@ export interface DeploymentConfig {
 }
 
 export async function getDeploymentConfig(networkName: string): Promise<DeploymentConfig> {
-  const rawConfig = await readFile(deploymentConfigPath, "utf-8");
+  const rawConfig = await fs.readFile(deploymentConfigPath, "utf-8");
   const config = yaml.parse(rawConfig);
   const deployment = config.deployments[networkName];
   if (!deployment) {

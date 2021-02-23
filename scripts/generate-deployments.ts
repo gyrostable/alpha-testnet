@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import { promises as fs } from "fs";
 import g from "glob";
 import path from "path";
 import { promisify } from "util";
