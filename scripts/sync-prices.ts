@@ -1,4 +1,3 @@
-import { BigNumber } from "ethers";
 import hre from "hardhat";
 import { INFURA_PROJECT_ID, INFURA_PROJECT_SECRET } from "../hardhat.config";
 import { getDeploymentConfig, scale } from "../misc/deployment-utils";
