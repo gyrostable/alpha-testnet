@@ -27,6 +27,8 @@ async function main() {
   );
   const dummyOracle = DummyUniswapAnchoredView__factory.connect(dummyOracleAddress, signer);
 
+  const doneSymbols: Record<string, boolean> = {};
+
   for (let symbol in tokens) {
     if (symbol === "WETH") {
       symbol = "ETH";
@@ -34,6 +36,9 @@ async function main() {
 
     if (["sUSD", "BUSD"].includes(symbol)) {
       symbol = "DAI";
+    }
+    if (doneSymbols[symbol]) {
+      console.log(`${symbol} already updated, skipping`);
     }
     const isRegistered = await dummyOracle.tokenRegistered(symbol);
     if (!isRegistered) {
@@ -44,6 +49,7 @@ async function main() {
     console.log(`Setting price for ${symbol}`);
     const price = await mainnetOracle.price(symbol);
     await dummyOracle.setPrice(symbol, price, { gasPrice });
+    doneSymbols[symbol] = true;
   }
 }
 
