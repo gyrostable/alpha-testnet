@@ -7,7 +7,7 @@ const { deployments, ethers } = hre;
 
 async function main() {
   const [account] = await ethers.getSigners();
-  const gyroFundDeployment = await deployments.get("GyroFundV1");
+  const gyroFundDeployment = await deployments.get("GyroProxy");
   const gyroFund = GyroFundFactory.connect(gyroFundDeployment.address, account);
 
   const poolAddresses = await gyroFund.poolAddresses();

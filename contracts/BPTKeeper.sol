@@ -12,8 +12,6 @@ import "./Keeper.sol";
 import "./CDaiVault.sol";
 import "./Exponential.sol";
 
-import "hardhat/console.sol";
-
 contract BPTKeeper is Exponential {
     using SafeMath for uint256;
 
@@ -54,13 +52,14 @@ contract BPTKeeper is Exponential {
         // TODO: claim BAL rewards
         uint256 _balBalance = balancerPool.balanceOf(msg.sender);
 
-        (uint256 _wethAmount, ) = ethBalPool.swapExactAmountIn(
-            balAddress,
-            _balBalance,
-            wethAddress,
-            0,
-            0 // TODO: get this from oracle
-        );
+        (uint256 _wethAmount, ) =
+            ethBalPool.swapExactAmountIn(
+                balAddress,
+                _balBalance,
+                wethAddress,
+                0,
+                0 // TODO: get this from oracle
+            );
 
         address[] memory _tokens = balancerPool.getFinalTokens();
         uint256[] memory _swappedAmounts = new uint256[](_tokens.length);
@@ -70,27 +69,21 @@ contract BPTKeeper is Exponential {
             // TODO: check if we want to use uniswap here instead
             BPool _pool = BPool(tokenPools[i]);
 
-            (uint256 _outAmount, ) = _pool.swapExactAmountIn(
-                wethAddress,
-                _tokenWethAmount,
-                _tokens[i],
-                0,
-                0 // TODO: get this from oracle
-            );
+            (uint256 _outAmount, ) =
+                _pool.swapExactAmountIn(
+                    wethAddress,
+                    _tokenWethAmount,
+                    _tokens[i],
+                    0,
+                    0 // TODO: get this from oracle
+                );
             _swappedAmounts[i] = _outAmount;
         }
 
         uint256 _poolSupply = balancerPool.totalSupply();
         uint256 _firstAssetBalance = balancerPool.getBalance(_tokens[0]);
-        uint256 _supplyRatio = mustDivExp(
-            _swappedAmounts[0],
-            _firstAssetBalance
-        );
-        uint256 _targetAmountOut = mustMulExp3(
-            _supplyRatio,
-            _poolSupply,
-            expScale - slippage
-        );
+        uint256 _supplyRatio = mustDivExp(_swappedAmounts[0], _firstAssetBalance);
+        uint256 _targetAmountOut = mustMulExp3(_supplyRatio, _poolSupply, expScale - slippage);
         balancerPool.joinPool(_targetAmountOut, _swappedAmounts);
 
         balancerPool.transfer(msg.sender, _targetAmountOut);

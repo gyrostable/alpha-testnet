@@ -15,7 +15,7 @@ async function main() {
   const [signer] = await ethers.getSigners();
   const { deployment, pools, tokens } = await getDeploymentConfig(hre.network.name);
 
-  const gyroFundDeployment = await deployments.get("GyroFundV1");
+  const gyroFundDeployment = await deployments.get("GyroProxy");
   const balancerExternalTokenRouterDeployment = await deployments.get(
     "BalancerExternalTokenRouter"
   );

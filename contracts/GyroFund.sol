@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./GyroPriceOracle.sol";
@@ -11,7 +11,7 @@ import "./GyroRouter.sol";
 import "./Ownable.sol";
 import "./abdk/ABDKMath64x64.sol";
 
-interface GyroFund is IERC20 {
+interface GyroFund is IERC20Upgradeable {
     event Mint(address minter, uint256 amount);
     event Redeem(address redeemer, uint256 amount);
 
@@ -57,7 +57,7 @@ interface GyroFund is IERC20 {
         );
 }
 
-contract GyroFundV1 is GyroFund, Ownable, ERC20 {
+contract GyroFundV1 is GyroFund, Ownable, ERC20Upgradeable {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
@@ -123,18 +123,17 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     uint256 constant WOULD_UNBALANCE_GYROSCOPE = 1;
     uint256 constant TOO_MUCH_SLIPPAGE = 2;
 
-    constructor(
+    function initialize(
         uint256 _portfolioWeightEpsilon,
         address _priceOracleAddress,
         address _routerAddress,
         uint256 _memoryParam
-    ) ERC20("Gyro Dollar", "GYD") Ownable() {
+    ) public initializer {
+        __ERC20_init("Gyro Dollar", "GYD");
         gyroPriceOracle = GyroPriceOracle(_priceOracleAddress);
         gyroRouter = GyroRouter(_routerAddress);
 
         lastSeenBlock = block.number;
-        inflowHistory = 0;
-        outflowHistory = 0;
         memoryParam = _memoryParam;
 
         portfolioWeightEpsilon = _portfolioWeightEpsilon;
@@ -282,7 +281,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         } else if (stablecoinPrice <= idealPrice - maxDeviation) {
             _stablecoinHealthy = false;
         }
-        console.log(stablecoinAddress, "health", _stablecoinHealthy);
 
         //Volume (to do)
 
@@ -337,7 +335,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
     {
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool success =
-                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
+                ERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
             require(success, "failed to transfer tokens, check allowance");
         }
         uint256[] memory _allUnderlyingPrices = getAllTokenPrices();
@@ -576,12 +574,6 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
         );
 
         // if check 1 succeeds and all pools healthy, then proceed with minting
-        console.log(
-            "_allPoolsHealthy",
-            poolStatus._allPoolsHealthy,
-            "_allPoolsWithinEpsilon",
-            poolStatus._allPoolsWithinEpsilon
-        );
         if (poolStatus._allPoolsHealthy) {
             if (poolStatus._allPoolsWithinEpsilon) {
                 _launch = true;
@@ -720,7 +712,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         for (uint256 i = 0; i < _BPTokensIn.length; i++) {
             bool success =
-                IERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
+                ERC20(_BPTokensIn[i]).transferFrom(msg.sender, address(this), _amountsIn[i]);
             require(success, "failed to transfer tokens, check allowance");
         }
 
@@ -963,7 +955,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20 {
 
         for (uint256 i = 0; i < _amountsOut.length; i++) {
             bool success =
-                IERC20(_BPTokensOut[i]).transferFrom(address(this), msg.sender, _amountsOut[i]);
+                ERC20(_BPTokensOut[i]).transferFrom(address(this), msg.sender, _amountsOut[i]);
             require(success, "failed to transfer tokens");
         }
 

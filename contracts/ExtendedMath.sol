@@ -64,10 +64,27 @@ library ExtendedMath {
         uint256 exp,
         uint256 _decimals
     ) internal pure returns (uint256) {
-        uint256 result = 1e18;
-        for (uint256 i = 0; i < exp; i++) {
-            result = scaledMul(result, base, _decimals);
+        uint256 result = 10**_decimals;
+
+        while (exp > 0) {
+            if (exp % 2 == 1) {
+                result = scaledMul(result, base, _decimals);
+            }
+            exp /= 2;
+            base = scaledMul(base, base, _decimals);
         }
         return result;
     }
+
+    // function scaledPow(
+    //     uint256 base,
+    //     uint256 exp,
+    //     uint256 _decimals
+    // ) internal pure returns (uint256) {
+    //     uint256 result = 1e18;
+    //     for (uint256 i = 0; i < exp; i++) {
+    //         result = scaledMul(result, base, _decimals);
+    //     }
+    //     return result;
+    // }
 }

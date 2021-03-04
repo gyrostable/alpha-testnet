@@ -6,9 +6,9 @@ const { deployments, ethers } = hre;
 
 async function main() {
   const [account] = await ethers.getSigners();
-  const wethDaiPoolDeployment = await deployments.get("BPoolweth_dai");
-  const wethDeployment = await deployments.get("WETHERC20");
-  const daiDeployment = await deployments.get("DAIERC20");
+  const wethDaiPoolDeployment = await deployments.get("pool-dai_weth");
+  const wethDeployment = await deployments.get("token-WETH");
+  const daiDeployment = await deployments.get("token-DAI");
 
   const MILLION = new BN(10).pow(new BN(24));
 

@@ -2,7 +2,6 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "hardhat/console.sol";
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
 import "./compound/UniswapAnchoredView.sol";
@@ -138,7 +137,7 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
 
         uint256 result = _k.scaledMul(_weightedProd).scaledDiv(_bptSupply);
         // console.log("final _weightedProd", _weightedProd, "supply", _bptSupply);
-        console.log("final _k", _k, "result", result);
+        // console.log("final _k", _k, "result", result);
         return result;
     }
 }

@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
 
-import "./compound/Exponential.sol" as E;
+import "./compound/ExponentialBase.sol";
 
-contract Exponential is E.Exponential {
+contract Exponential is ExponentialBase {
     function mustMulExp(uint256 a, uint256 b) internal pure returns (uint256) {
         (MathError err, Exp memory result) = mulExp(a, b);
         require(err == MathError.NO_ERROR, "math failed");
@@ -19,10 +19,7 @@ contract Exponential is E.Exponential {
     }
 
     function mustDivExp(uint256 a, uint256 b) internal pure returns (uint256) {
-        (MathError err, Exp memory result) = divExp(
-            Exp({mantissa: a}),
-            Exp({mantissa: b})
-        );
+        (MathError err, Exp memory result) = divExp(Exp({mantissa: a}), Exp({mantissa: b}));
         require(err == MathError.NO_ERROR, "math failed");
         return result.mantissa;
     }

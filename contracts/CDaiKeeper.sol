@@ -13,8 +13,6 @@ import "./Keeper.sol";
 import "./CDaiVault.sol";
 import "./CompoundCore.sol";
 
-import "hardhat/console.sol";
-
 contract CDaiKeeper is CompoundCore, Keeper {
     using SafeMath for uint256;
 
@@ -107,15 +105,9 @@ contract CDaiKeeper is CompoundCore, Keeper {
 
         uint256 _collateralFactor = getCdaiCollateralFactor();
 
-        uint256 _scaledSafeMaxRatio = mustMulExp(
-            safeMaxRatio,
-            _collateralFactor
-        );
+        uint256 _scaledSafeMaxRatio = mustMulExp(safeMaxRatio, _collateralFactor);
 
-        uint256 _scaledTargetBorrowRatio = mustMulExp(
-            _targetBorrowRatio,
-            _collateralFactor
-        );
+        uint256 _scaledTargetBorrowRatio = mustMulExp(_targetBorrowRatio, _collateralFactor);
 
         while (
             !isWithinBorrowRatioTarget(
@@ -125,14 +117,11 @@ contract CDaiKeeper is CompoundCore, Keeper {
             )
         ) {
             // take identity scaledSafeMaxRatio = (daiOwed + daiToBorrow) / daiHeld), solve for daiToBorrow
-            uint256 _daiToBorrow = mustMulExp(_scaledSafeMaxRatio, _daiHeld)
-                .sub(_daiOwed);
+            uint256 _daiToBorrow = mustMulExp(_scaledSafeMaxRatio, _daiHeld).sub(_daiOwed);
 
             // _nextBorrowRatio in [0, 0.75]
-            uint256 _nextBorrowRatio = mustDivExp(
-                _daiOwed.add(_daiToBorrow),
-                _daiHeld.add(_daiToBorrow)
-            );
+            uint256 _nextBorrowRatio =
+                mustDivExp(_daiOwed.add(_daiToBorrow), _daiHeld.add(_daiToBorrow));
 
             // check if this should be the last loop, if so, attain the target
             if (_nextBorrowRatio > _scaledTargetBorrowRatio) {
@@ -141,9 +130,7 @@ contract CDaiKeeper is CompoundCore, Keeper {
                 // R_final = (B + ΔB) / (H + ΔB)
                 // ΔB = (T * H - B) / (1 - T)
                 _daiToBorrow = mustDivExp(
-                    mustMulExp(_scaledTargetBorrowRatio, _daiHeld).sub(
-                        _daiOwed
-                    ),
+                    mustMulExp(_scaledTargetBorrowRatio, _daiHeld).sub(_daiOwed),
                     expScale - _scaledTargetBorrowRatio
                 );
             }
@@ -190,19 +177,10 @@ contract CDaiKeeper is CompoundCore, Keeper {
 
         uint256 _collateralFactor = getCdaiCollateralFactor();
 
-        uint256 _scaledSafeMaxRatio = mustMulExp(
-            safeMaxRatio,
-            _collateralFactor
-        );
-        uint256 _scaledTargetBorrowRatio = mustMulExp(
-            _targetBorrowRatio,
-            _collateralFactor
-        );
+        uint256 _scaledSafeMaxRatio = mustMulExp(safeMaxRatio, _collateralFactor);
+        uint256 _scaledTargetBorrowRatio = mustMulExp(_targetBorrowRatio, _collateralFactor);
 
-        _currentBorrowRatio = mustMulExp(
-            _currentBorrowRatio,
-            _collateralFactor
-        );
+        _currentBorrowRatio = mustMulExp(_currentBorrowRatio, _collateralFactor);
 
         uint256 _totalAmountRepaid = 0;
         while (
@@ -213,15 +191,11 @@ contract CDaiKeeper is CompoundCore, Keeper {
             )
         ) {
             // take identity scaledSafeMaxRatio = daiHeld / (daiOwed - daiToRepay), solve for daiToRepay
-            uint256 _daiToRepay = _daiHeld.sub(
-                mustDivExp(_daiOwed, _scaledSafeMaxRatio)
-            );
+            uint256 _daiToRepay = _daiHeld.sub(mustDivExp(_daiOwed, _scaledSafeMaxRatio));
 
             // _nextBorrowRatio in [0, 0.75]
-            uint256 _nextBorrowRatio = mustDivExp(
-                _daiOwed.sub(_daiToRepay),
-                _daiHeld.sub(_daiToRepay)
-            );
+            uint256 _nextBorrowRatio =
+                mustDivExp(_daiOwed.sub(_daiToRepay), _daiHeld.sub(_daiToRepay));
 
             // check if this should be the last loop, if so, attain the target
             if (_nextBorrowRatio < _scaledTargetBorrowRatio) {
@@ -277,11 +251,7 @@ contract CDaiKeeper is CompoundCore, Keeper {
         return mustMulExp3(targetBorrowRatio, tokensHeld, collateralFactor);
     }
 
-    function cdaiToDai(uint256 cdaiAmount, uint256 exchangeRate)
-        internal
-        pure
-        returns (uint256)
-    {
+    function cdaiToDai(uint256 cdaiAmount, uint256 exchangeRate) internal pure returns (uint256) {
         return mustDivExp(cdaiAmount, exchangeRate);
     }
 
@@ -310,17 +280,9 @@ contract CDaiKeeper is CompoundCore, Keeper {
         uint256 _currentBorrowRatio = computeBorrowRatio(msg.sender);
 
         if (_currentBorrowRatio < _minBorrowRatio) {
-            borrowDai(
-                _currentBorrowRatio,
-                _targetBorrowRatio,
-                _borrowRatioEpsilon
-            );
+            borrowDai(_currentBorrowRatio, _targetBorrowRatio, _borrowRatioEpsilon);
         } else if (_currentBorrowRatio > _maxBorrowRatio) {
-            repayDai(
-                _currentBorrowRatio,
-                _targetBorrowRatio,
-                _borrowRatioEpsilon
-            );
+            repayDai(_currentBorrowRatio, _targetBorrowRatio, _borrowRatioEpsilon);
         } else {
             revert(CANNOT_REBALANCE);
         }

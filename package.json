@@ -72,5 +72,8 @@
   },
   "prettier": {
     "printWidth": 100
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^3.4.1"
   }
 }

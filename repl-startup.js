@@ -19,4 +19,4 @@ const uniswapAnchor = UniswapAnchoredView__factory.connect(
   signer
 );
 
-const gyroFund = GyroFundV1__factory.connect((await deployments.get("GyroFundV1")).address, signer);
+const gyroFund = GyroFundV1__factory.connect((await deployments.get("GyroProxy")).address, signer);

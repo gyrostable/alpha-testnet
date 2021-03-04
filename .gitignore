@@ -7,3 +7,5 @@ typechain
 deployments/localhost
 dist/
 .env
+build/
+__pycache__

@@ -16,7 +16,7 @@ async function main() {
   const usdcAddress = await getTokenAddress("USDC", deployment, deployments);
 
   const gyroLibDeployment = await deployments.get("GyroLib");
-  const gyroFundDeployment = await deployments.get("GyroFundV1");
+  const gyroFundDeployment = await deployments.get("GyroProxy");
   const gyroFund = GyroFundFactory.connect(gyroFundDeployment.address, account);
   const gyroLib = GyroLibFactory.connect(gyroLibDeployment.address, account);
 

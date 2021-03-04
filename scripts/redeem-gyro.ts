@@ -6,7 +6,7 @@ const { deployments, ethers } = hre;
 async function main() {
   const poolNames = ["usdc_weth", "weth_dai"];
   const [account] = await ethers.getSigners();
-  const gyroFundDeployment = await deployments.get("GyroFundV1");
+  const gyroFundDeployment = await deployments.get("GyroProxy");
   const poolsDeployments = await Promise.all(poolNames.map((p) => deployments.get(`BPool${p}`)));
   const poolAddresses = poolsDeployments.map((v) => v.address);
 
