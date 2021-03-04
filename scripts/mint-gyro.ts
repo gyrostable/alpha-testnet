@@ -12,7 +12,7 @@ async function main() {
 
   const poolAddresses = await gyroFund.poolAddresses();
 
-  const amountIn = scale(20);
+  const amountIn = scale(5);
 
   for (const poolAddress of poolAddresses) {
     const pool = BPoolFactory.connect(poolAddress, account);
@@ -26,7 +26,8 @@ async function main() {
 
   const tx = await gyroFund.mintTest(
     poolAddresses,
-    poolAddresses.map((_) => amountIn)
+    poolAddresses.map((_) => amountIn),
+    { gasLimit: 3_000_000 }
   );
   // const tx = await gyroFund.mint(
   //   poolAddresses,

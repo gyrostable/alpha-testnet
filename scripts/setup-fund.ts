@@ -61,6 +61,7 @@ async function main() {
       continue;
     }
     const weight = scale(poolConfig.weight).div(100); // poolConfig.weight is a percentage
+    console.log(`adding ${pool.name}`);
     await gyroFund.addPool(poolAddress, weight);
     await balancerExternalTokenRouter.addPool(poolAddress);
   }

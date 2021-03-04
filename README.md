@@ -35,3 +35,13 @@ yarn build:full
 ```
 
 At this stage, the SDK should work properly, try running the tests following the instructions at: https://github.com/stablecoin-labs/gyro-sdk
+
+
+## Deploying to Kovan
+
+```
+yarn hardhat --network kovan deploy
+yarn hardhat --network kovan run scripts/bind-pools.ts # bind balancer pools
+yarn hardhat --network kovan run scripts/sync-prices.ts # set oracle prices
+yarn hardhat --network kovan run scripts/setup-fund.ts # setup Gyro Fund
+```
