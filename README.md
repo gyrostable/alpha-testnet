@@ -1,9 +1,13 @@
 # Gyroscope core
 
+This repository contains the core contracts and logic for Gyro reserves: https://gyro.finance
+
+The documentation here is intended for contributors to this repository.
+For the general Gyro documentation, please visit https://docs.gyro.finance
+
 ## Initial setup
 
 First, install the dependencies and compile using
-
 
 ```
 yarn install
@@ -44,4 +48,15 @@ yarn hardhat --network kovan deploy
 yarn hardhat --network kovan run scripts/bind-pools.ts # bind balancer pools
 yarn hardhat --network kovan run scripts/sync-prices.ts # set oracle prices
 yarn hardhat --network kovan run scripts/setup-fund.ts # setup Gyro Fund
+```
+
+## Running tests
+
+The tests are written using [Brownie](https://eth-brownie.readthedocs.io/)
+Brownie needs to be installed first, using `pip install eth-brownie`
+
+Tests can then be ran using
+
+```
+brownie test
 ```
