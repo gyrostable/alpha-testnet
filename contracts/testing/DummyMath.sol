@@ -12,4 +12,16 @@ contract MathTesting {
     function scaledPowTransact(uint256 a, uint256 b) public {
         scaledPow(a, b);
     }
+
+    /**
+     * @return value * (base ** exponent)
+     */
+    function mulPow(
+        uint256 value,
+        uint256 base,
+        uint256 exponent,
+        uint256 decimal
+    ) external pure returns (uint256) {
+        return value.mulPow(base, exponent, decimal);
+    }
 }
