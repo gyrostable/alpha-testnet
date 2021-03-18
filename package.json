@@ -55,7 +55,7 @@
     "build:js": "cross-env TS_NODE_PROJECT=\"tsconfig.webpack.json\" npx webpack",
     "local:mint": "npx hardhat run --network localhost scripts/mint-gyro.ts",
     "local:redeem": "npx hardhat run --network localhost scripts/redeem-gyro.ts",
-    "test": "npx hardhat test",
+    "test": "brownie test",
     "console:local": "npx hardhat --network localhost console",
     "run-node": "npx hardhat node --show-accounts --no-deploy",
     "task:sync-prices": "npx hardhat --network localhost run scripts/sync-prices.ts",

@@ -35,6 +35,15 @@ def balancer_token_router(BalancerTokenRouter, admin):
 
 
 @pytest.fixture
+def external_token_router(BalancerExternalTokenRouter, admin, pools):
+    router = admin.deploy(BalancerExternalTokenRouter)
+    router.initializeOwner()
+    for pool in pools:
+        router.addPool(pool.address)
+    return router
+
+
+@pytest.fixture
 def gyro_fund_v1(
     GyroFundV1,
     admin,
@@ -61,7 +70,15 @@ def gyro_fund_v1(
         weight = math.ceil(raw_weight) if i == 0 else math.floor(raw_weight)
         fund.addPool(pool.address, scale(weight, 16))
         pool.approve(fund.address, 10 ** 50)
+
     return fund
+
+
+@pytest.fixture
+def gyrolib(GyroLib, admin, gyro_fund_v1, external_token_router, tokens):
+    lib = admin.deploy(GyroLib, gyro_fund_v1.address, external_token_router.address)
+    lib.initializeOwner()
+    return lib
 
 
 def create_pool(admin, bfactory, BPool, tokens):
