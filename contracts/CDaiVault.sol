@@ -45,17 +45,6 @@ contract CDaiVault is CompoundCore, Ownable, ERC20 {
         uniswapanchor = UniswapAnchoredView(_compUniswapAnchorAddress);
     }
 
-    // constructor (address _cdai, address _dai, address _controller) public ERC20Detailed(
-    //     string(abi.encodePacked("yearn ", ERC20Detailed(_token).name())),
-    //     string(abi.encodePacked("y", ERC20Detailed(_token).symbol())),
-    //     ERC20Detailed(_token).decimals()
-    // ) {
-    //     cdai = CTokenInterface(_cdai);
-    //     dai = ERC20(_dai);
-    //     governance = msg.sender;
-    //     controller = _controller;
-    // }
-
     /**
      * Calculate the net asset value of the entire vault
      * @return nav in units of cDai

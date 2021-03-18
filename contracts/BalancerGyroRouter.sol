@@ -7,12 +7,25 @@ import "./GyroRouter.sol";
 import "./balancer/BPool.sol";
 import "./Ownable.sol";
 
+/**
+ * @notice This contracts is a very simple router to deposit supported assets and
+ * receive Balancer Pool Tokens depositable directly in the Gyro reserve in return
+ */
 contract BalancerExternalTokenRouter is GyroRouter, Ownable {
     mapping(address => address[]) public pools;
     address[] public tokens;
 
     event UnderlyingTokensDeposited(address[] indexed bpAddresses, uint256[] indexed bpAmounts);
 
+    /**
+     * @notice Deposits `_amountsIn` amounts of `_tokensIn` and receives Balancer Pool tokens
+     * in return. `_amountsIn[i]` is the amount of `_tokensIn[i]` token to deposit.
+     * @param _tokensIn the tokens to deposit
+     * @param _amountsIn the amount to deposit for each token
+     * @return the addresses and amounts of the Balancer Pool tokens received
+     * The length of the output tokens will be equal to the length of the output tokens
+     * and may contain duplicates
+     */
     function deposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
         external
         override
@@ -40,6 +53,13 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         return (_bpAddresses, _bpAmounts);
     }
 
+    /**
+     * @notice Estimates how many Balancer Pool tokens would be received given
+     * `_amountsIn` amounts of `_tokensIn`. See `deposit` for more information
+     * @param _tokensIn the tokens to deposit
+     * @param _amountsIn the amount to deposit for each token
+     * @return the addresses and amounts of the Balancer Pool tokens that would be received
+     */
     function estimateDeposit(address[] memory _tokensIn, uint256[] memory _amountsIn)
         external
         view
@@ -60,26 +80,15 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         return (_bpAddresses, _bpAmounts);
     }
 
-    function estimateWithdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
-        external
-        view
-        returns (address[] memory, uint256[] memory)
-    {
-        address[] memory _bpAddresses = new address[](_tokensOut.length);
-        uint256[] memory _bpAmounts = new uint256[](_amountsOut.length);
-
-        for (uint256 i = 0; i < _tokensOut.length; i++) {
-            address token = _tokensOut[i];
-            uint256 amount = _amountsOut[i];
-
-            BPool pool = BPool(choosePoolToDeposit(token, amount));
-            uint256 poolAmountIn = calcPoolInGivenSingleOut(pool, token, amount);
-            _bpAddresses[i] = address(pool);
-            _bpAmounts[i] = poolAmountIn;
-        }
-        return (_bpAddresses, _bpAmounts);
-    }
-
+    /**
+     * @notice Withdraws the underlying tokens using `_amountsOut` amounts of `_tokensOut` of Balancer Pool tokens.
+     * The given balancer pool tokens should be supported by this router
+     * @param _tokensOut the Balancer Pool tokens to use
+     * @param _amountsOut the amount to for each token
+     * @return the addresses and amounts of the underlying tokens that would be received
+     * The number of tokens returned will have the same length than the
+     * number of pools given and may contain duplicates
+     */
     function withdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
         external
         override
@@ -100,6 +109,33 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
             require(success, "failed to transfer token to sender");
         }
         return (_tokensOut, _amountsOut);
+    }
+
+    /**
+     * @notice Estimates how many of the underlying tokens would be received given
+     * `_amountsOut` amounts of `_tokensOut` of Balancer Pool tokens. See `withdraw` for more information
+     * @param _tokensOut the Balancer Pool tokens to use
+     * @param _amountsOut the amount to for each token
+     * @return the addresses and amounts of the underlying tokens that would be received
+     */
+    function estimateWithdraw(address[] memory _tokensOut, uint256[] memory _amountsOut)
+        external
+        view
+        returns (address[] memory, uint256[] memory)
+    {
+        address[] memory _bpAddresses = new address[](_tokensOut.length);
+        uint256[] memory _bpAmounts = new uint256[](_amountsOut.length);
+
+        for (uint256 i = 0; i < _tokensOut.length; i++) {
+            address token = _tokensOut[i];
+            uint256 amount = _amountsOut[i];
+
+            BPool pool = BPool(choosePoolToDeposit(token, amount));
+            uint256 poolAmountIn = calcPoolInGivenSingleOut(pool, token, amount);
+            _bpAddresses[i] = address(pool);
+            _bpAmounts[i] = poolAmountIn;
+        }
+        return (_bpAddresses, _bpAmounts);
     }
 
     function calcPoolOutGivenSingleIn(

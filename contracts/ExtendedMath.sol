@@ -12,13 +12,17 @@ library ExtendedMath {
     uint256 constant decimals = 18;
     uint256 constant decimalScale = 10**decimals;
 
+    /**
+     * @notice Computes x**y where both `x` and `y` are fixed-point numbers
+     */
     function powf(int128 _x, int128 _y) internal pure returns (int128 _xExpy) {
         // 2^(y * log2(x))
         return _y.mul(_x.log_2()).exp_2();
     }
 
     /**
-     * @return value * (base ** exponent)
+     * @notice Computes `value * base ** exponent` where all of the parameters
+     * are fixed point numbers scaled with `decimal`
      */
     function mulPow(
         uint256 value,
@@ -31,6 +35,12 @@ library ExtendedMath {
         return powf(basef, expf).mulu(value);
     }
 
+    /**
+     * @notice Multiplies `a` and `b` scaling the result down by `_decimals`
+     * `scaledMul(a, b, 18)` with an initial scale of 18 decimals for `a` and `b`
+     * would keep the result to 18 decimals
+     * The result of the computation is floored
+     */
     function scaledMul(
         uint256 a,
         uint256 b,
@@ -43,10 +53,12 @@ library ExtendedMath {
         return scaledMul(a, b, decimals);
     }
 
-    function scaledDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-        return scaledDiv(a, b, decimals);
-    }
-
+    /**
+     * @notice Divides `a` and `b` scaling the result up by `_decimals`
+     * `scaledDiv(a, b, 18)` with an initial scale of 18 decimals for `a` and `b`
+     * would keep the result to 18 decimals
+     * The result of the computation is floored
+     */
     function scaledDiv(
         uint256 a,
         uint256 b,
@@ -55,10 +67,18 @@ library ExtendedMath {
         return a.mul(10**_decimals).div(b);
     }
 
-    function scaledPow(uint256 base, uint256 exp) internal pure returns (uint256) {
-        return scaledPow(base, exp, decimals);
+    /**
+     * @notice See `scaledDiv(uint256 a, uint256 b, uint256 _decimals)`
+     */
+    function scaledDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+        return scaledDiv(a, b, decimals);
     }
 
+    /**
+     * @notice Computes a**b where a is a scaled fixed-point number and b is an integer
+     * This keeps a scale of `_decimals` for `a`
+     * The computation is performed in O(log n)
+     */
     function scaledPow(
         uint256 base,
         uint256 exp,
@@ -76,15 +96,10 @@ library ExtendedMath {
         return result;
     }
 
-    // function scaledPow(
-    //     uint256 base,
-    //     uint256 exp,
-    //     uint256 _decimals
-    // ) internal pure returns (uint256) {
-    //     uint256 result = 1e18;
-    //     for (uint256 i = 0; i < exp; i++) {
-    //         result = scaledMul(result, base, _decimals);
-    //     }
-    //     return result;
-    // }
+    /**
+     * @notice See `scaledPow(uint256 base, uint256 exp, uint256 _decimals)`
+     */
+    function scaledPow(uint256 base, uint256 exp) internal pure returns (uint256) {
+        return scaledPow(base, exp, decimals);
+    }
 }

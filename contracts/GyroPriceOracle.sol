@@ -1,7 +1,6 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
-
 
 import "./balancer/BPool.sol";
 import "./abdk/ABDKMath64x64.sol";
@@ -11,21 +10,20 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./ExtendedMath.sol";
 
-/** 
-* PriceOracle is the interface for asset price oracles
-* Currently used with a proxy for the Compound oracle on testnet
-*/
+/**
+ * PriceOracle is the interface for asset price oracles
+ * Currently used with a proxy for the Compound oracle on testnet
+ */
 interface PriceOracle {
     function getPrice(string memory tokenSymbol) external view returns (uint256);
 }
 
-
-/** 
-* GyroPriceOracle is the P-AMM implementation described here: 
-* https://docs.gyro.finance/learn/gyro-amms/p-amm
-* The testnet implementation (GyroPriceOracleV1) simplifications are detailed here: 
-* https://docs.gyro.finance/testnet-alpha/gyroscope-amm
-*/
+/**
+ * GyroPriceOracle is the P-AMM implementation described here:
+ * https://docs.gyro.finance/learn/gyro-amms/p-amm
+ * The testnet implementation (GyroPriceOracleV1) simplifications are detailed here:
+ * https://docs.gyro.finance/testnet-alpha/gyroscope-amm
+ */
 interface GyroPriceOracle {
     function getAmountToMint(
         uint256 _dollarValueIn,
@@ -55,12 +53,12 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
     uint256 constant bpoolDecimals = 18;
 
     /**
-    * Calculates the offer price to mint a new Gyro Dollar in the P-AMM.
-    * @param _dollarValueIn = dollar value of user-provided input assets
-    * @param _inflowHistory = current state of Gyroscope inflow history
-    * @param _nav = current reserve value per Gyro Dollar
-    * Returns the amount of GYD that the protocol will offer to mint in return
-    * for the input assets.
+     * Calculates the offer price to mint a new Gyro Dollar in the P-AMM.
+     * @param _dollarValueIn = dollar value of user-provided input assets
+     * @param _inflowHistory = current state of Gyroscope inflow history
+     * @param _nav = current reserve value per Gyro Dollar
+     * Returns the amount of GYD that the protocol will offer to mint in return
+     * for the input assets.
      */
     function getAmountToMint(
         uint256 _dollarValueIn,
@@ -85,11 +83,11 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
     }
 
     /**
-    * Calculates the offer price to redeem a Gyro Dollar in the P-AMM.
-    * @param _dollarValueOut = dollar-value of user-requested outputs, to redeem from reserve
-    * @param _outflowHistory = current state of Gyroscope outflow history
-    * @param _nav = current reserve value per Gyro Dollar
-    * Returns the amount of GYD the protocol will ask to redeem to fulfill the requested asset outputs
+     * Calculates the offer price to redeem a Gyro Dollar in the P-AMM.
+     * @param _dollarValueOut = dollar-value of user-requested outputs, to redeem from reserve
+     * @param _outflowHistory = current state of Gyroscope outflow history
+     * @param _nav = current reserve value per Gyro Dollar
+     * Returns the amount of GYD the protocol will ask to redeem to fulfill the requested asset outputs
      */
     function getAmountToRedeem(
         uint256 _dollarValueOut,
@@ -109,12 +107,12 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
     }
 
     /**
-    * Calculates the value of Balancer pool tokens using the logic described here:
-    * https://docs.gyro.finance/learn/oracles/bpt-oracle
-    * This is robust to price manipulations within the Balancer pool.
-    * @param _bPoolAddress = address of Balancer pool
-    * @param _underlyingPrices = array of prices for underlying assets in the pool, in the same
-    * order as _bPool.getFinalTokens() will return
+     * Calculates the value of Balancer pool tokens using the logic described here:
+     * https://docs.gyro.finance/learn/oracles/bpt-oracle
+     * This is robust to price manipulations within the Balancer pool.
+     * @param _bPoolAddress = address of Balancer pool
+     * @param _underlyingPrices = array of prices for underlying assets in the pool, in the same
+     * order as _bPool.getFinalTokens() will return
      */
     function getBPTPrice(address _bPoolAddress, uint256[] memory _underlyingPrices)
         public
@@ -148,37 +146,28 @@ contract GyroPriceOracleV1 is GyroPriceOracle {
             uint256 _price = _underlyingPrices[i];
             uint256 _tokenBalance = _bPool.getBalance(_tokens[i]);
             uint256 _decimals = ERC20(_tokens[i]).decimals();
-            // _k = _k * _tokenBalance ** _weight
-            // console.log("balance", _tokenBalance, "weight", _weight, "decimal", _decimals);
 
             if (_decimals < bpoolDecimals) {
                 _tokenBalance = _tokenBalance.mul(10**(bpoolDecimals - _decimals));
                 _price = _price.mul(10**(bpoolDecimals - _decimals));
             }
 
-            // console.log("balance", _tokenBalance, "weight", _weight);
-            // console.log("decimal", _decimals, "price", _price);
-
             _k = _k.mulPow(_tokenBalance, _weight, bpoolDecimals);
 
-            // _weightedProd = _weightedProd * (_price / _weight) ** _weight;
             _weightedProd = _weightedProd.mulPow(
                 _price.scaledDiv(_weight, bpoolDecimals),
                 _weight,
                 bpoolDecimals
             );
-            // console.log("_k", _k, "_weightedProd", _weightedProd);
         }
 
         uint256 result = _k.scaledMul(_weightedProd).scaledDiv(_bptSupply);
-        // console.log("final _weightedProd", _weightedProd, "supply", _bptSupply);
-        // console.log("final _k", _k, "result", result);
         return result;
     }
 }
 
 /**
-* Proxy contract for Compound asset price oracle, used in testnet implementation
+ * Proxy contract for Compound asset price oracle, used in testnet implementation
  */
 contract CompoundPriceWrapper is PriceOracle {
     using SafeMath for uint256;
@@ -204,24 +193,5 @@ contract CompoundPriceWrapper is PriceOracle {
         uint256 unscaledPrice = oracle.price(tokenSymbol);
         TokenConfig memory tokenConfig = oracle.getTokenConfigBySymbol(tokenSymbol);
         return unscaledPrice.mul(tokenConfig.baseUnit).div(oraclePriceScale);
-    }
-}
-
-contract DummyPriceWrapper is PriceOracle {
-    function getPrice(string memory tokenSymbol) public pure override returns (uint256) {
-        bytes32 symbolHash = keccak256(bytes(tokenSymbol));
-        if (symbolHash == keccak256(bytes("DAI"))) {
-            return 1e18;
-        } else if (symbolHash == keccak256(bytes("BUSD"))) {
-            return 1e18;
-        } else if (symbolHash == keccak256(bytes("sUSD"))) {
-            return 1e18;
-        } else if (symbolHash == keccak256(bytes("USDC"))) {
-            return 1e6;
-        } else if (symbolHash == keccak256(bytes("WETH"))) {
-            return 2000e18;
-        } else {
-            revert("symbol not supported");
-        }
     }
 }

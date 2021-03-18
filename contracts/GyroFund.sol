@@ -12,24 +12,23 @@ import "./Ownable.sol";
 import "./abdk/ABDKMath64x64.sol";
 
 /**
-* GyroFund contains the logic for the Gyroscope Reserve
-* The storage of this contract should be empty, as the Gyroscope state will be 
-* maintained in the proxy contract.
-* GyroFund contains the mint and redeem functions for GYD and interacts with the 
-* GyroPriceOracle for the P-AMM functionality.
-*/
-
+ * GyroFund contains the public interface of the Gyroscope Reserve
+ * Its main functionality include minting and redeeming Gyro dollars
+ * using supported tokens, which are currently only Balancer Pool Tokens.
+ * To mint and redeem against other type of assets, please see the `GyroLib` contract
+ * which contains helpers and uses a basic router to do so.
+ */
 interface GyroFund is IERC20Upgradeable {
     event Mint(address minter, uint256 amount);
     event Redeem(address redeemer, uint256 amount);
 
     /**
-    * Mints GYD in return for user-input tokens
-    * @param _tokensIn = array of pool token addresses, in the same order as stored in the contract
-    * @param _amountsIn = user-input pool token amounts, in same order as _tokensIn
-    * @param _minGyroMinted = slippage parameter for min GYD to mint or else revert
-    * Returns amount of GYD to mint and emits a Mint event
-    */
+     * Mints GYD in return for user-input tokens
+     * @param _tokensIn = array of pool token addresses, in the same order as stored in the contract
+     * @param _amountsIn = user-input pool token amounts, in same order as _tokensIn
+     * @param _minGyroMinted = slippage parameter for min GYD to mint or else revert
+     * Returns amount of GYD to mint and emits a Mint event
+     */
     function mint(
         address[] memory _tokensIn,
         uint256[] memory _amountsIn,
@@ -37,12 +36,12 @@ interface GyroFund is IERC20Upgradeable {
     ) external returns (uint256);
 
     /**
-    * Redeems GYD in return for user-specified token amounts from the reserve
-    * @param _BPTokensOut = array of pool token addresses, in the same order as stored in the contract
-    * @param _amountsOut = user-specified pool token amounts to redeem for, in same order as _BPTokensOut
-    * @param _maxGyroRedeemed = slippage parameter for max GYD to redeem or else revert
-    * Returns amount of GYD to redeem and emits Redeem event
-    */
+     * Redeems GYD in return for user-specified token amounts from the reserve
+     * @param _BPTokensOut = array of pool token addresses, in the same order as stored in the contract
+     * @param _amountsOut = user-specified pool token amounts to redeem for, in same order as _BPTokensOut
+     * @param _maxGyroRedeemed = slippage parameter for max GYD to redeem or else revert
+     * Returns amount of GYD to redeem and emits Redeem event
+     */
     function redeem(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
@@ -64,13 +63,13 @@ interface GyroFund is IERC20Upgradeable {
     ) external view returns (uint256 errorCode, uint256 estimatedAmount);
 
     /**
-    * Takes in the same parameters as redeem and returns whether the
-    * redeem will succeed or not as well as the estimated redeem amount
-    * @param _BPTokensOut = array of pool token addresses, in the same order as stored in the contract
-    * @param _amountsOut = user-specified pool token amounts to redeem for, in same order as _BPTokensOut
-    * @param _maxGyroRedeemed = slippage parameter for max GYD to redeem or else revert
-    * @return errorCode of 0 is no error happens or a value described in errors.json
-    */
+     * Takes in the same parameters as redeem and returns whether the
+     * redeem will succeed or not as well as the estimated redeem amount
+     * @param _BPTokensOut = array of pool token addresses, in the same order as stored in the contract
+     * @param _amountsOut = user-specified pool token amounts to redeem for, in same order as _BPTokensOut
+     * @param _maxGyroRedeemed = slippage parameter for max GYD to redeem or else revert
+     * @return errorCode of 0 is no error happens or a value described in errors.json
+     */
     function redeemChecksPass(
         address[] memory _BPTokensOut,
         uint256[] memory _amountsOut,
@@ -78,11 +77,11 @@ interface GyroFund is IERC20Upgradeable {
     ) external view returns (uint256 errorCode, uint256 estimatedAmount);
 
     /**
-    * Gets the current values in the reserve pools
-    * @return errorCode of 0 is no error happens or a value described in errors.json
-    * @return BPTokenAddresses = array of pool token addresses, in the right order
-    * @return BPReserveDollarValues = dollar-value held by the reserve in each pool, in same order
-    */
+     * Gets the current values in the reserve pools
+     * @return errorCode of 0 is no error happens or a value described in errors.json
+     * @return BPTokenAddresses = array of pool token addresses, in the right order
+     * @return BPReserveDollarValues = dollar-value held by the reserve in each pool, in same order
+     */
     function getReserveValues()
         external
         view
@@ -93,6 +92,13 @@ interface GyroFund is IERC20Upgradeable {
         );
 }
 
+/**
+ * GyroFundV1 contains the logic for the Gyroscope Reserve
+ * The storage of this contract should be empty, as the Gyroscope storage will be
+ * held in the proxy contract.
+ * GyroFundV1 contains the mint and redeem functions for GYD and interacts with the
+ * GyroPriceOracle for the P-AMM functionality.
+ */
 contract GyroFundV1 is GyroFund, Ownable, ERC20Upgradeable {
     using ExtendedMath for int128;
     using ABDKMath64x64 for uint256;
