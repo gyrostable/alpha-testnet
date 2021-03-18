@@ -153,3 +153,22 @@ contract TokenFaucet is Ownable {
         return true;
     }
 }
+
+contract MetaFaucet {
+    address[] tokenFaucets;
+
+    constructor(
+        address[] memory _tokenFaucets
+    ) {
+        tokenFaucets = _tokenFaucets;
+    }
+
+    function mint() public returns (bool) {
+        address[] memory _tokenFaucets = tokenFaucets;
+        for (uint256 i = 0; i < _tokenFaucets.length; i++) {
+            (bool success, ) = _tokenFaucets[i].delegatecall(abi.encodeWithSignature("mint()"));
+            require(success, "Failure to mint");
+        }
+        return true;
+    }
+}
