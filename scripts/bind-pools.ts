@@ -48,6 +48,7 @@ async function main() {
       const tokenContract = ERC20__factory.connect(tokenAddress, signer);
       await tokenContract.approve(poolAddress, balance);
       await poolContract.bind(tokenAddress, balance, denorm);
+      console.log("binding", asset.symbol, balance.toString(), denorm.toString());
     }
 
     const swapFee = scale(pool.swap_fee, 12);

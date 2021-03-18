@@ -209,12 +209,17 @@ contract CompoundPriceWrapper is PriceOracle {
 
 contract DummyPriceWrapper is PriceOracle {
     function getPrice(string memory tokenSymbol) public pure override returns (uint256) {
-        if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("DAI"))) {
+        bytes32 symbolHash = keccak256(bytes(tokenSymbol));
+        if (symbolHash == keccak256(bytes("DAI"))) {
             return 1e18;
-        } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("USDC"))) {
+        } else if (symbolHash == keccak256(bytes("BUSD"))) {
+            return 1e18;
+        } else if (symbolHash == keccak256(bytes("sUSD"))) {
+            return 1e18;
+        } else if (symbolHash == keccak256(bytes("USDC"))) {
             return 1e6;
-        } else if (keccak256(bytes(tokenSymbol)) == keccak256(bytes("WETH"))) {
-            return 1350e18;
+        } else if (symbolHash == keccak256(bytes("WETH"))) {
+            return 2000e18;
         } else {
             revert("symbol not supported");
         }
