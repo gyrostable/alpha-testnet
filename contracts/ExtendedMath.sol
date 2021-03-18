@@ -4,6 +4,10 @@ pragma solidity ^0.7.0;
 import "./abdk/ABDKMath64x64.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+/**
+ * @notice This contract contains math related utilities that allows to
+ * compute fixed-point exponentiation or perform scaled arithmetic operations
+ */
 library ExtendedMath {
     using ABDKMath64x64 for int128;
     using ABDKMath64x64 for uint256;
