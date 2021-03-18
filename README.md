@@ -53,7 +53,8 @@ yarn hardhat --network kovan run scripts/setup-fund.ts # setup Gyro Fund
 
 ## Running tests
 
-The tests are written using [Brownie](https://eth-brownie.readthedocs.io/)
+The tests are written using [Brownie](https://eth-brownie.readthedocs.io/).
+
 Brownie needs to be installed first, using `pip install eth-brownie`
 
 Tests can then be ran using
