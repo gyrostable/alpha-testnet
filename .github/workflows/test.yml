@@ -1,0 +1,40 @@
+name: Gyro tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install wheel
+        run: pip install wheel
+
+      - name: Install brownie
+        run: pip install eth-brownie
+
+      - name: Install ganache
+        run: yarn global add ganache-cli
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build project
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test
