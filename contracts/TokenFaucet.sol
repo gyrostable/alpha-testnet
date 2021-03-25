@@ -154,21 +154,61 @@ contract TokenFaucet is Ownable {
     }
 }
 
-contract MetaFaucet {
-    address[] tokenFaucets;
+contract MetaFaucet is Ownable {
+    event Mint(address indexed account, address indexed token, uint256 indexed amount);
+    uint256 private constant waitTime = 30 minutes;
 
-    constructor(
-        address[] memory _tokenFaucets
-    ) {
+    mapping(address => uint256) private lastAccessTime;
+
+    address[] public tokenFaucets;
+
+    constructor(address[] memory _tokenFaucets) {
         tokenFaucets = _tokenFaucets;
     }
 
     function mint() public returns (bool) {
+        require(allowedToMint(msg.sender), "not currently allowed to mint");
+        lastAccessTime[msg.sender] = block.timestamp;
+
         address[] memory _tokenFaucets = tokenFaucets;
         for (uint256 i = 0; i < _tokenFaucets.length; i++) {
-            (bool success, ) = _tokenFaucets[i].delegatecall(abi.encodeWithSignature("mint()"));
-            require(success, "Failure to mint");
+            uint256 amount = TokenFaucet(_tokenFaucets[i]).mintAmt();
+            TokenFaucet(_tokenFaucets[i]).mintAsOwner(msg.sender, amount);
+            emit Mint(msg.sender, _tokenFaucets[i], amount);
         }
         return true;
+    }
+
+    function mintAsOwner(
+        address token,
+        address dst,
+        uint256 amt
+    ) public onlyOwner returns (bool) {
+        return TokenFaucet(token).mintAsOwner(dst, amt);
+    }
+
+    function restoreFaucetOwnership(address token) public onlyOwner {
+        TokenFaucet(token).transferOwnership(msg.sender);
+    }
+
+    function restoreAllFaucetsOwnership() external onlyOwner {
+        address[] memory _tokenFaucets = tokenFaucets;
+        for (uint256 i = 0; i < _tokenFaucets.length; i++) {
+            TokenFaucet(_tokenFaucets[i]).transferOwnership(msg.sender);
+        }
+    }
+
+    function allowedToMint(address whom) internal view returns (bool) {
+        if (lastAccessTime[whom] == 0) {
+            return true;
+        } else if (block.timestamp >= lastAccessTime[whom] + waitTime) {
+            return true;
+        }
+        return false;
+    }
+
+    function getTokens() external view returns (address[] memory) {
+        address[] memory _tokenFaucets = tokenFaucets;
+        return _tokenFaucets;
     }
 }
