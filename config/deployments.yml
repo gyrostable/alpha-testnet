@@ -29,6 +29,11 @@ tokens:
     decimals: 18
     mintAmount: 1000
     stable: true
+  GYD:
+    name: "Gyroscope Dollar"
+    symbol: "GYD"
+    decimals: 18
+    stable: true
 
 pools:
   usdc_busd:
@@ -61,6 +66,16 @@ pools:
         amount: 50000000
         weight: 5
     swap_fee: 1000
+  gyd_usdc:
+    name: gyd_usdc
+    assets:
+      - symbol: GYD
+        amount: 10000000
+        weight: 5
+      - symbol: USDC
+        amount: 10000000
+        weight: 5
+    swap_fee: 1000
 
 deployments:
   localhost:
@@ -71,6 +86,8 @@ deployments:
         weight: 33
       - name: susd_weth
         weight: 33
+      - name: gyd_usdc
+        weight: 0
     tokens:
       - symbol: WETH
       - symbol: USDC
@@ -100,6 +117,8 @@ deployments:
         weight: 33
       - name: susd_weth
         weight: 33
+      - name: gyd_usdc
+        weight: 0
     bfactory: "0x8f7F78080219d4066A8036ccD30D588B416a40DB"
     tokens:
       - symbol: WETH

@@ -5,14 +5,9 @@ async function main() {
   const { deployments, network } = hre;
   const { deployment, pools } = await getDeploymentConfig(network.name);
 
-  for (const poolConfig of deployment.pools) {
-    if (poolConfig.weight === 0) {
-      continue;
-    }
-
-    const pool = pools[poolConfig.name];
-    await bindPool(pool, deployment, deployments);
-  }
+  const poolName = "gyd_usdc";
+  const pool = pools[poolName];
+  await bindPool(pool, deployment, deployments);
 }
 
 main()

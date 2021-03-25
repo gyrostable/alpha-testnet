@@ -12,6 +12,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployment, tokens } = await getDeploymentConfig(hre.network.name);
 
   for (const tokenConfig of deployment.tokens) {
+    if (tokenConfig.symbol === "GYD") {
+      continue;
+    }
+
     if (tokenConfig.address) {
       return;
     }

@@ -6,10 +6,7 @@ import {
   getBFactoryAddress,
   getDeploymentConfig,
   getPoolDeploymentName,
-  getTokenAddress,
-  scale,
 } from "../misc/deployment-utils";
-import { BPool__factory, ERC20__factory } from "../typechain";
 import { BFactory__factory } from "../typechain/factories/BFactory__factory";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -17,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments } = hre;
   const { save } = deployments;
 
-  const { deployment, pools, tokens } = await getDeploymentConfig(hre.network.name);
+  const { deployment, pools } = await getDeploymentConfig(hre.network.name);
 
   const allDeployments = await deployments.all();
 

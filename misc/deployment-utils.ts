@@ -1,8 +1,10 @@
 import { BigNumber, BigNumberish } from "ethers";
 import { promises as fs } from "fs";
+import { ethers } from "hardhat";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 import path from "path";
 import yaml from "yaml";
+import { BPool__factory, ERC20__factory, PriceOracle__factory } from "../typechain";
 
 export const deploymentConfigPath = path.join(path.dirname(__dirname), "config", "deployments.yml");
 
@@ -97,6 +99,10 @@ export async function getTokenAddress(
   deployments: DeploymentsExtension
 ): Promise<string> {
   const symbol = typeof token === "string" ? token : token.symbol;
+  if (symbol === "GYD") {
+    const fundDeployment = await deployments.get("GyroProxy");
+    return fundDeployment.address;
+  }
   const tokenConfig = deployment.tokens.find((t) => t.symbol === symbol);
   if (!tokenConfig) {
     throw new Error(`no token ${symbol} in current deployment`);
@@ -174,4 +180,56 @@ export async function transformArgs(
     }
   }
   return transformed;
+}
+
+export async function bindPool(
+  pool: Pool,
+  deployment: Deployment,
+  deployments: DeploymentsExtension
+) {
+  const [signer] = await ethers.getSigners();
+  const poolAddress = await getBPoolAddress(pool.name, deployment, deployments);
+  const poolContract = BPool__factory.connect(poolAddress, signer);
+
+  if (await poolContract.isFinalized()) {
+    return;
+  }
+
+  console.log(`binding pool ${pool.name}`);
+  const getTokenPrice = async (symbol: string) => {
+    if (symbol === "GYD") {
+      return BigNumber.from(10).pow(18);
+    }
+    const priceOracleAddress = await getOracleAddress(
+      deployment.tokenOracles[symbol],
+      deployment,
+      deployments
+    );
+    const oracle = PriceOracle__factory.connect(priceOracleAddress, signer);
+    return oracle.getPrice(symbol);
+  };
+
+  for (const asset of pool.assets) {
+    const tokenAddress = await getTokenAddress(asset.symbol, deployment, deployments);
+    const decimals = await ERC20__factory.connect(tokenAddress, signer).decimals();
+    const tokenPrice = await getTokenPrice(asset.symbol);
+
+    // token.decimals and tokenPrice have the same scale
+    const balance = scale(asset.amount, decimals * 2).div(tokenPrice);
+    const isBound = await poolContract.isBound(tokenAddress);
+    if (isBound) {
+      console.log(`${asset.symbol} already bound, continuing`);
+      continue;
+    }
+
+    const denorm = scale(asset.weight, 18);
+    const tokenContract = ERC20__factory.connect(tokenAddress, signer);
+    await tokenContract.approve(poolAddress, balance);
+    await poolContract.bind(tokenAddress, balance, denorm);
+    console.log("binding", asset.symbol, balance.toString(), denorm.toString());
+  }
+
+  const swapFee = scale(pool.swap_fee, 12);
+  await poolContract.setSwapFee(swapFee);
+  await poolContract.finalize();
 }

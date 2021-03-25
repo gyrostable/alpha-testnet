@@ -30,6 +30,10 @@ async function main() {
   const doneSymbols: Record<string, boolean> = {};
 
   for (let symbol in tokens) {
+    if (symbol === "GYD") {
+      continue;
+    }
+
     if (symbol === "WETH") {
       symbol = "ETH";
     }

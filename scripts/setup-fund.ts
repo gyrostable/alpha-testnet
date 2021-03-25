@@ -51,6 +51,9 @@ async function main() {
   const poolAddresses = await gyroFund.poolAddresses();
 
   for (const poolConfig of deployment.pools) {
+    if (poolConfig.weight === 0) {
+      continue;
+    }
     const pool = pools[poolConfig.name];
     if (!pool) {
       throw new Error(`could not find config for pool ${poolConfig.name}`);
