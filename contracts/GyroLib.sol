@@ -14,8 +14,8 @@ contract GyroLib is Ownable {
     event Mint(address indexed minter, uint256 indexed amount);
     event Redeem(address indexed redeemer, uint256 indexed amount);
 
-    GyroFundV1 fund;
-    BalancerExternalTokenRouter externalTokensRouter;
+    GyroFundV1 public fund;
+    BalancerExternalTokenRouter public externalTokensRouter;
 
     constructor(address gyroFundAddress, address externalTokensRouterAddress) {
         fund = GyroFundV1(gyroFundAddress);
@@ -63,7 +63,9 @@ contract GyroLib is Ownable {
         for (uint256 i = 0; i < sortedAddresses.length; i++) {
             IERC20(sortedAddresses[i]).approve(address(fund), sortedAmounts[i]);
         }
-        uint256 minted = fund.mintFor(sortedAddresses, sortedAmounts, _minAmountOut, msg.sender);
+
+        uint256 minted = fund.mint(sortedAddresses, sortedAmounts, _minAmountOut);
+        require(fund.transfer(msg.sender, minted), "failed to send back gyro");
         emit Mint(msg.sender, minted);
         return minted;
     }
