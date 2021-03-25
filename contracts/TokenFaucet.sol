@@ -172,7 +172,8 @@ contract MetaFaucet is Ownable {
 
         address[] memory _tokenFaucets = tokenFaucets;
         for (uint256 i = 0; i < _tokenFaucets.length; i++) {
-            uint256 amount = TokenFaucet(_tokenFaucets[i]).mintAmt();
+            TokenFaucet faucet = TokenFaucet(_tokenFaucets[i]);
+            uint256 amount = faucet.mintAmt() * 10**faucet.decimals();
             TokenFaucet(_tokenFaucets[i]).mintAsOwner(msg.sender, amount);
             emit Mint(msg.sender, _tokenFaucets[i], amount);
         }

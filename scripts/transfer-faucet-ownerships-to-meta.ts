@@ -11,7 +11,12 @@ async function main() {
   const tokens = await metaFaucet.getTokens();
   for (const tokenAddress of tokens) {
     const token = TokenFaucet__factory.connect(tokenAddress, account);
-    await token.transferOwnership(metaFaucet.address);
+    console.log(`runnnig for token ${tokenAddress}`);
+    const currentOwner = await token.owner();
+    if (currentOwner !== metaFaucet.address) {
+      console.log(`setting ownership for token ${tokenAddress}`);
+      await token.transferOwnership(metaFaucet.address);
+    }
   }
 }
 

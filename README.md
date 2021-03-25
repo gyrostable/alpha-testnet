@@ -62,3 +62,13 @@ Tests can then be ran using
 ```
 brownie test
 ```
+
+## Verifying source code
+
+Run the following command
+
+```
+npx hardhat --network kovan etherscan-verify --api-key API_KEY --force-license --license MIT
+```
+
+The API_KEY can be generated from Etherscan: https://etherscan.io/myapikey
