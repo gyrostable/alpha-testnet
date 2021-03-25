@@ -11,6 +11,9 @@ import "./Ownable.sol";
  * to use already minted Balancer Pool Tokens
  */
 contract GyroLib is Ownable {
+    event Mint(address indexed minter, uint256 indexed amount);
+    event Redeem(address indexed redeemer, uint256 indexed amount);
+
     GyroFundV1 fund;
     BalancerExternalTokenRouter externalTokensRouter;
 
@@ -60,8 +63,8 @@ contract GyroLib is Ownable {
         for (uint256 i = 0; i < sortedAddresses.length; i++) {
             IERC20(sortedAddresses[i]).approve(address(fund), sortedAmounts[i]);
         }
-        uint256 minted = fund.mint(sortedAddresses, sortedAmounts, _minAmountOut);
-        require(fund.transfer(msg.sender, minted), "failed to send back gyro");
+        uint256 minted = fund.mintFor(sortedAddresses, sortedAmounts, _minAmountOut, msg.sender);
+        emit Mint(msg.sender, minted);
         return minted;
     }
 
@@ -118,6 +121,7 @@ contract GyroLib is Ownable {
             IERC20(_tokensOut[i]).transfer(msg.sender, _amountsOut[i]);
         }
 
+        emit Redeem(msg.sender, _amountRedeemed);
         return _amountRedeemed;
     }
 

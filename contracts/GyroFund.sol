@@ -19,8 +19,8 @@ import "./abdk/ABDKMath64x64.sol";
  * which contains helpers and uses a basic router to do so.
  */
 interface GyroFund is IERC20Upgradeable {
-    event Mint(address minter, uint256 amount);
-    event Redeem(address redeemer, uint256 amount);
+    event Mint(address indexed minter, uint256 indexed amount);
+    event Redeem(address indexed redeemer, uint256 indexed amount);
 
     /**
      * Mints GYD in return for user-input tokens
@@ -34,6 +34,16 @@ interface GyroFund is IERC20Upgradeable {
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
     ) external returns (uint256);
+
+    /**
+     * Same as `mint` but the minted tokens are received by `_onBehalfOf`
+     */
+    function mintFor(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted,
+        address _onBehalfOf
+    ) external returns (uint256 amountToMint);
 
     /**
      * Redeems GYD in return for user-specified token amounts from the reserve
@@ -748,6 +758,15 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20Upgradeable {
         uint256[] memory _amountsIn,
         uint256 _minGyroMinted
     ) public override returns (uint256 amountToMint) {
+        return mintFor(_BPTokensIn, _amountsIn, _minGyroMinted, msg.sender);
+    }
+
+    function mintFor(
+        address[] memory _BPTokensIn,
+        uint256[] memory _amountsIn,
+        uint256 _minGyroMinted,
+        address _onBehalfOf
+    ) public override returns (uint256 amountToMint) {
         (uint256 errorCode, Weights memory weights, FlowLogger memory flowLogger) =
             mintChecksPassInternal(_BPTokensIn, _amountsIn, _minGyroMinted);
         require(errorCode == 0, errorCodeToString(errorCode));
@@ -760,7 +779,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20Upgradeable {
 
         amountToMint = weights.gyroAmount;
 
-        _mint(msg.sender, amountToMint);
+        _mint(_onBehalfOf, amountToMint);
 
         finalizeFlowLogger(
             flowLogger.inflowHistory,
@@ -771,7 +790,7 @@ contract GyroFundV1 is GyroFund, Ownable, ERC20Upgradeable {
             flowLogger.lastSeenBlock
         );
 
-        emit Mint(msg.sender, amountToMint);
+        emit Mint(_onBehalfOf, amountToMint);
 
         return amountToMint;
     }

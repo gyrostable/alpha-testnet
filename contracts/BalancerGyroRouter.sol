@@ -81,11 +81,11 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
     }
 
     /**
-     * @notice Withdraws the underlying tokens using `_amountsOut` amounts of `_tokensOut` of Balancer Pool tokens.
-     * The given balancer pool tokens should be supported by this router
-     * @param _tokensOut the Balancer Pool tokens to use
+     * @notice Withdraws the underlying tokens using `_amountsOut` amounts of `_tokensOut` of underlying tokens.
+     * The given tokens should be supported by this router
+     * @param _tokensOut the tokens to receive
      * @param _amountsOut the amount to for each token
-     * @return the addresses and amounts of the underlying tokens that would be received
+     * @return the addresses and amounts of the BP tokens used
      * The number of tokens returned will have the same length than the
      * number of pools given and may contain duplicates
      */
@@ -94,6 +94,8 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
         override
         returns (address[] memory, uint256[] memory)
     {
+        address[] memory _bpAddresses = new address[](_tokensOut.length);
+        uint256[] memory _bpAmounts = new uint256[](_amountsOut.length);
         for (uint256 i = 0; i < _tokensOut.length; i++) {
             address token = _tokensOut[i];
             uint256 amount = _amountsOut[i];
@@ -107,8 +109,11 @@ contract BalancerExternalTokenRouter is GyroRouter, Ownable {
 
             success = IERC20(token).transfer(msg.sender, amount);
             require(success, "failed to transfer token to sender");
+
+            _bpAddresses[i] = address(pool);
+            _bpAmounts[i] = poolAmountIn;
         }
-        return (_tokensOut, _amountsOut);
+        return (_bpAddresses, _bpAmounts);
     }
 
     /**
