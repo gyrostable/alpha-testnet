@@ -61,22 +61,34 @@ async function main() {
 
   let [firstToken, secondToken] = tokens;
 
-  //Make the secondToken the one with the positive deviation amount, use this to set the target for the first token which gets modified
   if (deviationSecond.gt(deviationFirst)) {
     [secondToken, firstToken] = [firstToken, secondToken];
+    [deviationSecond, deviationFirst] = [deviationFirst, deviationSecond];
   }
-  const targetValue = secondToken.value.mul(firstToken.weight).div(secondToken.weight);
-  const targetBalance = scale(targetValue, oracleDecimals).div(firstToken.price);
-  const balanceDelta = targetBalance.sub(firstToken.balance);
-  const scaledBalanceDelta = balanceDelta.div(scale(1, defaultDecimals - firstToken.decimals));
 
-  console.log(`transfering ${scaledBalanceDelta.toString()} ${firstToken.symbol} to the pool`);
+  const minDeviation = scale(1, 22); // 1%
+  const scaledDeviationFirst = scale(deviationFirst);
+  if (scaledDeviationFirst.gte(minDeviation)) {
+    console.log("deviation already large enough, skipping");
+  } else { 
 
-  await ERC20__factory.connect(firstToken.address, signer).approve(
-    pool.address,
-    scaledBalanceDelta
-  );
-  await pool.joinswapExternAmountIn(firstToken.address, scaledBalanceDelta, 0);
+    const targetValue = secondToken.value.mul(firstToken.weight).div(secondToken.weight);
+    const targetBalance = scale(targetValue, oracleDecimals).div(firstToken.price);
+    const balanceDelta = targetBalance.sub(firstToken.balance);
+    const scaledBalanceDelta = balanceDelta.div(scale(1, defaultDecimals - firstToken.decimals));
+  
+    console.log(`transfering ${scaledBalanceDelta.toString()} ${firstToken.symbol} to the pool`);
+  
+    await ERC20__factory.connect(firstToken.address, signer).approve(
+      pool.address,
+      scaledBalanceDelta
+    );
+    await pool.joinswapExternAmountIn(firstToken.address, scaledBalanceDelta, 0);
+
+
+  }
+
+
 
 }
 
