@@ -19,7 +19,12 @@ async function main() {
 
   const tokenPrice = await dummyOracle.price("ETH");
 
-  const symbolMapping: Record<string, string> = { WETH: "ETH", BUSD: "DAI", sUSD: "DAI", GYD: "DAI" };
+  const symbolMapping: Record<string, string> = {
+    WETH: "ETH",
+    BUSD: "DAI",
+    sUSD: "DAI",
+    GYD: "DAI",
+  };
   const oracleDecimals = 6;
   const defaultDecimals = 18;
 
@@ -29,21 +34,22 @@ async function main() {
     const price = await dummyOracle.price(symbol in symbolMapping ? symbolMapping[symbol] : symbol);
     const balance = await pool.getBalance(tokenAddress);
     const scaledBalance = scale(balance, defaultDecimals - decimals);
-    const weightDistortion = scale(2, 16);
+    const weightDistortion = scale(3, 16);
     const weight = await pool.getNormalizedWeight(tokenAddress);
 
-    const distortedWeight = symbol == "GYD" ? weight.sub(weightDistortion) : weight.add(weightDistortion);
+    const distortedWeight =
+      symbol == "GYD" ? weight.sub(weightDistortion) : weight.add(weightDistortion);
 
     return {
       address: tokenAddress,
-      weight: distortedWeight,
+      weight,
+      distortedWeight,
       decimals,
       balance: scaledBalance,
       price,
       value: scaledBalance.mul(price).div(BigNumber.from(10).pow(oracleDecimals)),
       symbol,
     };
-  
   };
 
   const poolAddress = await getBPoolAddress("gyd_usdc", deployment, deployments);
@@ -53,7 +59,6 @@ async function main() {
   const tokenAddresses = await pool.getFinalTokens();
   const tokens = await Promise.all(tokenAddresses.map((t) => getTokenInfo(pool, t)));
   const totalValue = tokens.reduce((acc, token) => acc.add(token.value), BigNumber.from(0));
-
 
   let [deviationFirst, deviationSecond] = tokens.map((t) =>
     scale(1).sub(scale(scale(t.value).div(totalValue)).div(t.weight))
@@ -66,30 +71,27 @@ async function main() {
     [deviationSecond, deviationFirst] = [deviationFirst, deviationSecond];
   }
 
-  const minDeviation = scale(1, 22); // 1%
-  const scaledDeviationFirst = scale(deviationFirst);
-  if (scaledDeviationFirst.gte(minDeviation)) {
+  console.log(deviationFirst.toString(), deviationSecond.toString());
+  const minDeviation = scale(5, 16); // 1%
+  if (deviationFirst.gte(minDeviation)) {
     console.log("deviation already large enough, skipping");
-  } else { 
-
-    const targetValue = secondToken.value.mul(firstToken.weight).div(secondToken.weight);
+  } else {
+    const targetValue = secondToken.value
+      .mul(firstToken.distortedWeight)
+      .div(secondToken.distortedWeight);
+    console.log("target value", targetValue.toString());
     const targetBalance = scale(targetValue, oracleDecimals).div(firstToken.price);
     const balanceDelta = targetBalance.sub(firstToken.balance);
     const scaledBalanceDelta = balanceDelta.div(scale(1, defaultDecimals - firstToken.decimals));
-  
+
     console.log(`transfering ${scaledBalanceDelta.toString()} ${firstToken.symbol} to the pool`);
-  
+
     await ERC20__factory.connect(firstToken.address, signer).approve(
       pool.address,
       scaledBalanceDelta
     );
     await pool.joinswapExternAmountIn(firstToken.address, scaledBalanceDelta, 0);
-
-
   }
-
-
-
 }
 
 main()
