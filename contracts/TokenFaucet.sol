@@ -156,25 +156,23 @@ contract TokenFaucet is Ownable {
 
 contract MetaFaucet is Ownable {
     event Mint(address indexed account, address indexed token, uint256 indexed amount);
-    uint256 private constant waitTime = 30 minutes;
-
-    mapping(address => uint256) private lastAccessTime;
 
     address[] public tokenFaucets;
+    mapping(address => uint256) public mintAmounts;
 
-    constructor(address[] memory _tokenFaucets) {
+    constructor(address[] memory _tokenFaucets, uint256[] memory _mintAmounts) {
         tokenFaucets = _tokenFaucets;
+        for (uint256 i = 0; i < _tokenFaucets.length; i++) {
+            mintAmounts[_tokenFaucets[i]] = _mintAmounts[i];
+        }
     }
 
-    function mint() public returns (bool) {
-        require(allowedToMint(msg.sender), "not currently allowed to mint");
-        lastAccessTime[msg.sender] = block.timestamp;
-
+    function mintAllAsOwner(address dst) public onlyOwner returns (bool) {
         address[] memory _tokenFaucets = tokenFaucets;
         for (uint256 i = 0; i < _tokenFaucets.length; i++) {
             TokenFaucet faucet = TokenFaucet(_tokenFaucets[i]);
-            uint256 amount = faucet.mintAmt() * 10**faucet.decimals();
-            TokenFaucet(_tokenFaucets[i]).mintAsOwner(msg.sender, amount);
+            uint256 amount = mintAmounts[address(faucet)] * 10**faucet.decimals();
+            TokenFaucet(_tokenFaucets[i]).mintAsOwner(dst, amount);
             emit Mint(msg.sender, _tokenFaucets[i], amount);
         }
         return true;
@@ -188,6 +186,10 @@ contract MetaFaucet is Ownable {
         return TokenFaucet(token).mintAsOwner(dst, amt);
     }
 
+    function setMintAmount(address token, uint256 amt) external onlyOwner {
+        mintAmounts[token] = amt;
+    }
+
     function restoreFaucetOwnership(address token) public onlyOwner {
         TokenFaucet(token).transferOwnership(msg.sender);
     }
@@ -197,15 +199,6 @@ contract MetaFaucet is Ownable {
         for (uint256 i = 0; i < _tokenFaucets.length; i++) {
             TokenFaucet(_tokenFaucets[i]).transferOwnership(msg.sender);
         }
-    }
-
-    function allowedToMint(address whom) internal view returns (bool) {
-        if (lastAccessTime[whom] == 0) {
-            return true;
-        } else if (block.timestamp >= lastAccessTime[whom] + waitTime) {
-            return true;
-        }
-        return false;
     }
 
     function getTokens() external view returns (address[] memory) {

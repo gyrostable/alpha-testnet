@@ -8,13 +8,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments } = hre;
   const { deploy, execute } = deployments;
 
-  const { deployment } = await getDeploymentConfig(hre.network.name);
+  const { deployment, tokens } = await getDeploymentConfig(hre.network.name);
 
   const tokenAddresses = await getTokensAddresses(deployment.tokens, deployment, deployments);
+  const mintAmounts = deployment.tokens.map((t) => tokens[t.symbol].mintAmount);
 
   const deploymentResult = await deploy("MetaFaucet", {
     from: deployer.address,
-    args: [tokenAddresses],
+    args: [tokenAddresses, mintAmounts],
     log: true,
     deterministicDeployment: true,
   });
