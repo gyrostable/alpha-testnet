@@ -1,6 +1,6 @@
 # Gyroscope core
 
-This repository contains the core contracts and logic for Gyro reserves: https://gyro.finance
+This repository contains the core contracts and logic for the Gyroscope alpha testnet reserves: https://gyro.finance
 
 The documentation here is intended for contributors to this repository.
 For the general Gyro documentation, please visit https://docs.gyro.finance
